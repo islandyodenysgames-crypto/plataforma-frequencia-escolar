@@ -5,7 +5,7 @@ const cors = require('cors');
 
 // Importação das rotas
 const frequenciaRoutes = require('./routes/frequenciaRoutes');
-const authRoutes = require('./routes/authRoutes'); // <-- ADICIONADO: Importando suas rotas de login/cadastro
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -13,18 +13,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 🔥 ADICIONADO: Serve os arquivos estáticos da pasta "public" (HTML, CSS, JS do Front-end)
+app.use(express.static('public'));
+
 // Forçamos a porta a escutar process.env.PORT (que será a 8080 definida no Railway)
 const PORT = process.env.PORT || 8080;
 const MONGO_URI = process.env.MONGO_URI;
 
-// Rota de teste inicial para o navegador
-app.get('/', (req, res) => {
-    res.send('API da Plataforma de Frequência Escolar está ONLINE! 🚀');
-});
-
 // Vinculando as rotas do sistema
 app.use('/api/frequencia', frequenciaRoutes);
-app.use('/api/auth', authRoutes); // <-- ADICIONADO: Ativando as rotas de autenticação sob o prefixo /api/auth
+app.use('/api/auth', authRoutes);
 
 // Conexão com o Banco de Dados e Inicialização do Servidor
 if (!MONGO_URI) {
