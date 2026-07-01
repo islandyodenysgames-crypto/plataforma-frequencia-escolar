@@ -13,10 +13,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🔥 ADICIONADO: Serve os arquivos estáticos da pasta "public" (HTML, CSS, JS do Front-end)
+// Serve os arquivos estáticos da pasta "public"
 app.use(express.static('public'));
 
-// Forçamos a porta a escutar process.env.PORT (que será a 8080 definida no Railway)
 const PORT = process.env.PORT || 8080;
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -34,7 +33,6 @@ mongoose.connect(MONGO_URI)
     .then(() => {
         console.log('✅ Conexão com o MongoDB Atlas estabelecida com sucesso!');
         
-        // O '0.0.0.0' diz ao Node para aceitar conexões vindas da internet pública do Railway
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Servidor rodando com sucesso na porta ${PORT}`);
         });
