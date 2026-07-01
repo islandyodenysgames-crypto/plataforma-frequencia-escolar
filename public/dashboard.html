@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Frequência - Escola Carminha</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <h2>Escola Carminha 🏫</h2>
+            <div class="user-info">
+                <span>Olá, <strong id="nomeProfessor">Professor</strong></span>
+                <button id="btnSair" onclick="logout()">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <section class="filtro-chamada">
+            <div class="form-group">
+                <label for="selectTurma">Selecione a Turma:</label>
+                <select id="selectTurma">
+                    <option value="">-- Escolha uma Turma --</option>
+                    <option value="1º Ano A">1º Ano A</option>
+                    <option value="2º Ano B">2º Ano B</option>
+                    <option value="3º Ano A">3º Ano A</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="inputData">Data da Chamada:</label>
+                <input type="date" id="inputData">
+            </div>
+
+            <button onclick="carregarAlunos()" id="btnBuscar">Buscar Lista</button>
+        </section>
+
+        <section id="areaChamada" class="area-chamada" style="display: none;">
+            <h3 id="tituloChamada">Lista de Alunos</h3>
+            <div class="tabela-responsiva">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Aluno</th>
+                            <th>Presença / Falta</th>
+                            <th>Motivo (Se Houver Falta)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaAlunosCorpo">
+                        </tbody>
+                </table>
+            </div>
+            
+            <button onclick="enviarChamada()" id="btnSalvarChamada">Salvar Chamada no Banco</button>
+            <div id="msgFeedback"></div>
+        </section>
+    </main>
+
+    <script>
+        // 🔒 PROTEÇÃO: Verifica se o usuário tem o token de login
+        const token = localStorage.getItem('token_carminha');
+        const nomeProf = localStorage.getItem('usuario_nome');
+
+        if (!token) {
+            window.location.href = 'index.html'; // Chuta para o login se não tiver logado
+        } else {
+            document.getElementById('nomeProfessor').textContent = nomeProf;
+            // Define a data de hoje automaticamente no input
+            document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
+        }
+
+        let alunosCarregados = [];
+
+        // 🔄 BUSCAR ALUNOS DA TURMA
+        async function carregarAlunos() {
+            const turma = document.getElementById('selectTurma').value;
+            if (!turma) return alert('Por favor, selecione uma turma!');
+
+            try {
+                const resposta = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
+                    method: 'GET',
+                    headers: { 'x-auth-token': token }
+                });
+
+                if (!resposta.ok) throw new Error('Erro ao buscar alunos.');
+                
+                alunosCarregados = await resposta.json();
+                renderizarLista();
+
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // 🎨 RENDERIZAR LISTA NA TELA
+        function renderizarLista() {
+            const corpoTabela = document.getElementById('listaAlunosCorpo');
+            corpoTabela.innerHTML = '';
+
+            if (alunosCarregados.length === 0) {
+                corpoTabela.innerHTML = `<tr><td colspan="3" style="text-align:center;">Nenhum aluno ativo cadastrado nesta turma.</td></tr>`;
+                document.getElementById('areaChamada').style.display = 'block';
+                return;
+            }
+
+            alunosCarregados.forEach((aluno, index) => {
+                // Criamos um estado inicial na lista: Todos começam como Presente (houve_falta = false)
+                aluno.houve_falta = false;
+                aluno.motivo_falta = 'NENHUM';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${aluno.nome}</strong></td>
+                    <td>
+                        <div class="btn-toggle-group">
+                            <button type="button" class="btn-presenca active" id="btn-p-${index}" onclick="definirPresenca(${index}, true)">P</button>
+                            <button type="button" class="btn-falta" id="btn-f-${index}" onclick="definirPresenca(${index}, false)">F</button>
+                        </div>
+                    </td>
+                    <td>
+                        <select id="motivo-${index}" disabled onchange="mudarMotivo(${index}, this.value)">
+                            <option value="NENHUM">Nenhum</option>
+                            <option value="DIRETA">Falta Direta</option>
+                            <option value="JUSTIFICADA">Justificada</option>
+                            <option value="ATESTADO">Atestado Médico</option>
+                            <option value="ONIBUS">Problema com Ônibus</option>
+                        </select>
+                    </td>
+                `;
+                corpoTabela.appendChild(tr);
+            });
+
+            document.getElementById('areaChamada').style.display = 'block';
+        }
+
+        // 🔘 ALTERAR PRESENÇA / FALTA (Estilização dos botões)
+        function definirPresenca(index, isPresente) {
+            const btnP = document.getElementById(`btn-p-${index}`);
+            const btnF = document.getElementById(`btn-f-${index}`);
+            const selectMotivo = document.getElementById(`motivo-${index}`);
+
+            if (isPresente) {
+                btnP.classList.add('active');
+                btnF.classList.remove('active');
+                selectMotivo.disabled = true;
+                selectMotivo.value = 'NENHUM';
+                alunosCarregados[index].houve_falta = false;
+                alunosCarregados[index].motivo_falta = 'NENHUM';
+            } else {
+                btnF.classList.add('active');
+                btnP.classList.remove('active');
+                selectMotivo.disabled = false;
+                selectMotivo.value = 'DIRETA'; // Padrão se faltou
+                alunosCarregados[index].houve_falta = true;
+                alunosCarregados[index].motivo_falta = 'DIRETA';
+            }
+        }
+
+        function mudarMotivo(index, valor) {
+            alunosCarregados[index].motivo_falta = valor;
+        }
+
+        // 🚀 ENVIAR CHAMADA COMPLETA PRO BANCO
+        async function enviarChamada() {
+            const dataChamada = document.getElementById('inputData').value;
+            const turma = document.getElementById('selectTurma').value;
+            const feedback = document.getElementById('msgFeedback');
+
+            // Formata o pacote conforme o back-end espera (listaFrequencia)
+            const listaFrequencia = alunosCarregados.map(aluno => ({
+                aluno_id: aluno._id,
+                turma: turma,
+                data: dataChamada,
+                houve_falta: aluno.houve_falta,
+                motivo_falta: aluno.motivo_falta
+            }));
+
+            try {
+                feedback.textContent = 'Enviando chamada...';
+                feedback.className = 'info-msg';
+
+                const resposta = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/lancar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify({ listaFrequencia })
+                });
+
+                const dados = await resposta.json();
+                
+                feedback.textContent = dados.mensagem || dados.erro;
+                feedback.className = resposta.ok ? 'sucesso-msg' : 'erro-msg';
+
+            } catch (error) {
+                feedback.textContent = 'Erro de conexão com o servidor.';
+                feedback.className = 'erro-msg';
+            }
+        }
+
+        // 🚪 LOGOUT
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
