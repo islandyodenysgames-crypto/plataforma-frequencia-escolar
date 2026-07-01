@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Aluno = require('../models/Aluno');
-const Frequencia = require('../models/Frequencia'); // <-- Importando o modelo de frequência
+const Frequencia = require('../models/Frequencia');
 const auth = require('../middlewares/authMiddleware');
 
 // Rota de teste
@@ -34,35 +34,50 @@ router.get('/alunos/:turma', auth, async (req, res) => {
 });
 
 // 3. Salvar Chamada do Dia (POST /api/frequencia/lancar)
-// O tablet vai enviar um array (lista) com as frequências de todos os alunos da turma de uma vez só
 router.post('/lancar', auth, async (req, res) => {
     try {
-        const { listaFrequencia } = req.body; // Espera uma lista/array de chamadas
+        const { listaFrequencia } = req.body;
 
         if (!listaFrequencia || !Array.isArray(listaFrequencia) || listaFrequencia.length === 0) {
             return res.status(400).json({ erro: 'Nenhum dado de frequência enviado ou formato inválido.' });
         }
 
-        // Adiciona quem gravou a chamada com base no usuário logado no token
         const chamadasFormatadas = listaFrequencia.map(item => ({
             ...item,
-            registrado_por: req.usuario.nome || 'Biblioteca' // Usando o nome vindo do token JWT
+            registrado_por: req.usuario.nome || 'Biblioteca'
         }));
 
-        // Salva todos os registros de uma vez só no banco de dados.
-        // O "ordered: false" garante que se um aluno falhar (ex: duplicado), ele continua salvando os outros!
         await Frequencia.insertMany(chamadasFormatadas, { ordered: false });
-
         res.status(201).json({ mensagem: 'Chamada registrada com sucesso! 📝✅' });
 
     } catch (error) {
-        // Se o erro for de índice duplicado (código 11000 del Mongoose)
         if (error.code === 11000) {
             return res.status(201).json({ 
                 mensagem: 'Chamada processada. Alguns registros já haviam sido lançados hoje e foram ignorados para evitar duplicidade.' 
             });
         }
         res.status(500).json({ erro: 'Erro ao salvar a chamada no servidor', detalhes: error.message });
+    }
+});
+
+// 🔥 4. Atualizar/Transferir/Remover Aluno (PUT /api/frequencia/alunos/:id)
+// Rota protegida para atualizar os dados do aluno de forma flexível usando findByIdAndUpdate
+router.put('/alunos/:id', auth, async (req, res) => {
+    try {
+        const idAluno = req.params.id;
+        const dadosAtualizados = req.body;
+
+        // { new: true } faz o Mongoose retornar o aluno já com as modificações aplicadas
+        const alunoModificado = await Aluno.findByIdAndUpdate(idAluno, dadosAtualizados, { new: true });
+
+        if (!alunoModificado) {
+            return res.status(404).json({ erro: 'Aluno não encontrado no sistema.' });
+        }
+
+        res.json({ mensagem: 'Aluno atualizado com sucesso! 🔄', aluno: alunoModificado });
+
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao atualizar dados do aluno', detalhes: error.message });
     }
 });
 
