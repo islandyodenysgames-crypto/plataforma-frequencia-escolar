@@ -11,7 +11,7 @@
         <div class="header-content">
             <h2>Escola Carminha 🏫</h2>
             <div class="user-info">
-                <button onclick="window.location.href='cadastro.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s;">🎒 Cadastrar Alunos</button>
+                <button onclick="window.location.href='cadastro.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s;">🎒 Cadastrar Alunos/Turmas</button>
                 <span>Olá, <strong id="nomeProfessor">Professor</strong></span>
                 <button id="btnSair" onclick="logout()">Sair</button>
             </div>
@@ -22,11 +22,9 @@
         <section class="filtro-chamada">
             <div class="form-group">
                 <label for="selectTurma">Selecione a Turma:</label>
+                <!-- O select agora começa vazio e será preenchido dinamicamente pelo JavaScript -->
                 <select id="selectTurma">
                     <option value="">-- Escolha uma Turma --</option>
-                    <option value="1º Ano A">1º Ano A</option>
-                    <option value="2º Ano B">2º Ano B</option>
-                    <option value="3º Ano A">3º Ano A</option>
                 </select>
             </div>
 
@@ -70,9 +68,33 @@
             document.getElementById('nomeProfessor').textContent = nomeProf;
             // Define a data de hoje automaticamente no input
             document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
+            
+            // Carrega as turmas dinâmicas assim que a página abre
+            carregarTurmasNoDashboard();
         }
 
         let alunosCarregados = [];
+
+        // 🏫 BUSCAR TURMAS DO BANCO DE DADOS
+        async function carregarTurmasNoDashboard() {
+            try {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
+                    headers: { 'x-auth-token': token }
+                });
+                
+                if (!res.ok) throw new Error("Erro ao buscar turmas");
+                
+                const turmas = await res.json();
+                const select = document.getElementById('selectTurma');
+                
+                // Preenche o select com as turmas vindas do banco
+                turmas.forEach(t => {
+                    select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
+                });
+            } catch (err) {
+                console.error("Erro ao carregar turmas:", err);
+            }
+        }
 
         // 🔄 BUSCAR ALUNOS DA TURMA
         async function carregarAlunos() {
