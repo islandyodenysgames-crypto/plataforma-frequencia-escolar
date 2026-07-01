@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Alunos - Escola Carminha</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <h2>Escola Carminha 🏫</h2>
+            <div class="user-info">
+                <button id="btnVoltar" onclick="window.location.href='dashboard.html'">← Voltar ao Painel</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container" style="max-width: 500px;">
+        <section class="area-chamada">
+            <h3>Cadastrar Novo Aluno 🎒</h3>
+            <p style="color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.9rem;">
+                Insira os dados do estudante para incluí-lo na lista de chamada automática.
+            </p>
+
+            <form id="cadastroAlunoForm">
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label for="nomeAluno">Nome Completo do Aluno:</label>
+                    <input type="text" id="nomeAluno" required placeholder="Ex: Maria Souza Oliveira" style="width: 100%;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label for="selectTurma">Turma do Aluno:</label>
+                    <select id="selectTurma" required style="width: 100%;">
+                        <option value="">-- Escolha a Turma --</option>
+                        <option value="1º Ano A">1º Ano A</option>
+                        <option value="2º Ano B">2º Ano B</option>
+                        <option value="3º Ano A">3º Ano A</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="btnSalvarChamada" style="background-color: var(--primary-color);">Salvar Cadastro</button>
+            </form>
+
+            <div id="msgFeedback"></div>
+        </section>
+    </main>
+
+    <script>
+        // 🔒 PROTEÇÃO: Bloqueia acesso de usuários deslogados
+        const token = localStorage.getItem('token_carminha');
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+
+        const form = document.getElementById('cadastroAlunoForm');
+        const feedback = document.getElementById('msgFeedback');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nome = document.getElementById('nomeAluno').value;
+            const turma = document.getElementById('selectTurma').value;
+
+            try {
+                feedback.textContent = 'Cadastrando aluno...';
+                feedback.className = 'info-msg';
+
+                const resposta = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/alunos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify({ nome, turma })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) throw new Error(dados.erro || 'Erro ao cadastrar.');
+
+                feedback.textContent = `Sucesso! ${nome} foi cadastrado(a) no ${turma}. 🎉`;
+                feedback.className = 'sucesso-msg';
+                
+                // Limpa apenas o campo do nome para facilitar o cadastro do próximo aluno da mesma turma
+                document.getElementById('nomeAluno').value = '';
+                document.getElementById('nomeAluno').focus();
+
+            } catch (error) {
+                feedback.textContent = error.message;
+                feedback.className = 'erro-msg';
+            }
+        });
+    </script>
+</body>
+</html>
