@@ -10,7 +10,7 @@
         .col-principal { flex: 2; min-width: 350px; }
         .col-lateral { flex: 1; min-width: 250px; }
         .linha-transferencia { background: #f1f2f6; padding: 0.5rem; border-radius: 4px; display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
-        .lista-turmas-remover { margin-top: 1rem; list-style: none; }
+        .lista-turmas-remover { margin-top: 1rem; list-style: none; padding: 0; }
         .lista-turmas-remover li { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
     </style>
 </head>
@@ -70,7 +70,7 @@
                             <label for="nomeTurma">Nova Turma:</label>
                             <input type="text" id="nomeTurma" required placeholder="Ex: 4º Ano C">
                         </div>
-                        <button type="submit" style="background-color: var(--success-color); color:white; border:none; padding:0.5rem; width:100%; border-radius:4px; font-weight:bold;">+ Criar Turma</button>
+                        <button type="submit" style="background-color: var(--success-color); color:white; border:none; padding:0.5rem; width:100%; border-radius:4px; font-weight:bold; cursor:pointer;">+ Criar Turma</button>
                     </form>
                     
                     <ul id="listaTurmasRemover" class="lista-turmas-remover"></ul>
@@ -92,29 +92,40 @@
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
                     headers: { 'x-auth-token': token }
                 });
+                
+                if (!res.ok) {
+                    const erroDados = await res.json();
+                    throw new Error(erroDados.erro || 'Falha ao buscar dados do servidor.');
+                }
+
                 todasAsTurmas = await res.json();
                 
-                // Atualiza o seletor de turmas do aluno
                 const select = document.getElementById('selectTurma');
                 const valorSelecionado = select.value;
                 select.innerHTML = '<option value="">-- Selecione uma Turma --</option>';
                 
-                // Atualiza a lista de remoção de turmas
                 const listaRemover = document.getElementById('listaTurmasRemover');
                 listaRemover.innerHTML = '';
 
-                todasAsTurmas.forEach(t => {
-                    select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
-                    listaRemover.innerHTML += `
-                        <li>
-                            <span>${t.nome}</span>
-                            <button onclick="removerTurma('${t._id}', '${t.nome}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer;">Deletar</button>
-                        </li>
-                    `;
-                });
+                if (todasAsTurmas.length === 0) {
+                    listaRemover.innerHTML = '<li style="color: #7f8c8d; font-size: 0.9rem;">Nenhuma turma cadastrada.</li>';
+                } else {
+                    todasAsTurmas.forEach(t => {
+                        select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
+                        listaRemover.innerHTML += `
+                            <li>
+                                <span>${t.nome}</span>
+                                <button onclick="removerTurma('${t._id}', '${t.nome}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer;">Deletar</button>
+                            </li>
+                        `;
+                    });
+                }
 
                 if(valorSelecionado) select.value = valorSelecionado;
-            } catch (err) { console.error(err); }
+            } catch (err) { 
+                console.error("Erro ao carregar turmas:", err);
+                alert("Erro ao sincronizar turmas: " + err.message);
+            }
         }
 
         // ➕ CADASTRAR TURMA
@@ -128,7 +139,8 @@
                     body: JSON.stringify({ nome })
                 });
                 const dados = await res.json();
-                if(!res.ok) throw new Error(dados.erro);
+                if(!res.ok) throw new Error(dados.erro || 'Erro ao salvar turma.');
+                
                 document.getElementById('nomeTurma').value = '';
                 await carregarTurmas();
             } catch(err) { alert(err.message); }
@@ -138,10 +150,14 @@
         async function removerTurma(id, nome) {
             if(!confirm(`Excluir a turma "${nome}"? Alunos vinculados a ela não sumirão, mas a turma deixará de listar.`)) return;
             try {
-                await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/turmas/${id}`, {
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/turmas/${id}`, {
                     method: 'DELETE',
                     headers: { 'x-auth-token': token }
                 });
+                if(!res.ok) {
+                    const dados = await res.json();
+                    throw new Error(dados.erro || 'Erro ao deletar.');
+                }
                 await carregarTurmas();
             } catch(err) { alert(err.message); }
         }
@@ -170,8 +186,8 @@
                                 <strong>${aluno.nome}</strong>
                                 <div id="area-transf-${aluno._id}" style="display:none;" class="linha-transferencia">
                                     <select id="select-transf-${aluno._id}"></select>
-                                    <button onclick="confirmarTransferencia('${aluno._id}')" style="background:var(--success-color); color:white; border:none; padding:2px 8px; border-radius:3px;">Ok</button>
-                                    <button onclick="cancelarTransferencia('${aluno._id}')" style="background:#7f8c8d; color:white; border:none; padding:2px 8px; border-radius:3px;">X</button>
+                                    <button onclick="confirmarTransferencia('${aluno._id}')" style="background:var(--success-color); color:white; border:none; padding:2px 8px; border-radius:3px; cursor:pointer;">Ok</button>
+                                    <button onclick="cancelarTransferencia('${aluno._id}')" style="background:#7f8c8d; color:white; border:none; padding:2px 8px; border-radius:3px; cursor:pointer;">X</button>
                                 </div>
                             </td>
                             <td style="text-align: right; vertical-align:top;">
@@ -213,10 +229,12 @@
             });
             div.style.display = 'flex';
         }
+        
         function cancelarTransferencia(id) { document.getElementById(`area-transf-${id}`).style.display = 'none'; }
 
         async function confirmarTransferencia(id) {
             const novaTurma = document.getElementById(`select-transf-${id}`).value;
+            if(!novaTurma) return alert("Selecione uma turma válida.");
             await executarAtualizacao(id, { turma: novaTurma }, "Aluno transferido com sucesso!");
         }
 
@@ -235,13 +253,17 @@
                     headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                     body: JSON.stringify(dados)
                 });
-                if (!res.ok) throw new Error("Erro ao atualizar.");
+                if (!res.ok) throw new Error("Erro ao atualizar dados no servidor.");
                 alert(mensagemSucesso);
-                listarAlunosDaTurma(turmaAtual);
+                
+                // Recarrega a tabela ou esconde se o aluno mudou de turma/foi deletado
+                if(dados.ativo === false || dados.turma) {
+                    listarAlunosDaTurma(turmaAtual);
+                }
             } catch (error) { alert(error.message); }
         }
 
-        // Inicialização
+        // Inicialização automática
         carregarTurmas();
     </script>
 </body>
