@@ -5,6 +5,7 @@ const cors = require('cors');
 
 // Importação das rotas
 const frequenciaRoutes = require('./routes/frequenciaRoutes');
+const authRoutes = require('./routes/authRoutes'); // <-- ADICIONADO: Importando suas rotas de login/cadastro
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get('/', (req, res) => {
 
 // Vinculando as rotas do sistema
 app.use('/api/frequencia', frequenciaRoutes);
+app.use('/api/auth', authRoutes); // <-- ADICIONADO: Ativando as rotas de autenticação sob o prefixo /api/auth
 
 // Conexão com o Banco de Dados e Inicialização do Servidor
 if (!MONGO_URI) {
