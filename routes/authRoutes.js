@@ -4,31 +4,67 @@ const Usuario = require('../models/Usuario');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-// Rota de Login (POST /api/auth/login)
+// 1. Rota de Cadastro de Usuário (POST /api/auth/register)
+router.post('/register', async (req, res) => {
+    try {
+        const { nome, login, senha, perfil } = req.body;
+
+        // Verificar se o usuário já existe
+        const usuarioExiste = await Usuario.findOne({ login });
+        if (usuarioExiste) {
+            return res.status(400).json({ erro: 'Este login já está em uso.' });
+        }
+
+        // Criptografar a senha
+        const salt = await bcrypt.genSalt(10);
+        const senhaCriptografada = await bcrypt.hash(senha, salt);
+
+        // Criar o novo usuário
+        const novoUsuario = new Usuario({
+            nome,
+            login,
+            senha: senhaCriptografada,
+            perfil: perfil || 'OPERADOR' // Se não enviar perfil, assume OPERADOR
+        });
+
+        // Salvar no MongoDB
+        await novoUsuario.save();
+
+        res.status(201).json({ 
+            mensagem: 'Usuário cadastrado com sucesso! 👤',
+            usuario: {
+                nome: novoUsuario.nome,
+                login: novoUsuario.login,
+                perfil: novoUsuario.perfil
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro no servidor ao cadastrar usuário', detalhes: error.message });
+    }
+});
+
+// 2. Rota de Login (POST /api/auth/login) - Sua rota original mantida intacta
 router.post('/login', async (req, res) => {
     try {
         const { login, senha } = req.body;
 
-        // 1. Verificar se o usuário existe
         const usuario = await Usuario.findOne({ login });
         if (!usuario) {
             return res.status(401).json({ erro: 'Usuário ou senha incorretos' });
         }
 
-        // 2. Verificar se a senha está correta (compara a senha digitada com a criptografada)
         const senhaCorreta = await bcrypt.compare(senha, usuario.senha);
         if (!senhaCorreta) {
             return res.status(401).json({ erro: 'Usuário ou senha incorretos' });
         }
 
-        // 3. Gerar o Token JWT (O "crachá" de acesso que expira em 1 dia)
         const token = jwt.sign(
             { id: usuario._id, perfil: usuario.perfil },
             process.env.JWT_SECRET,
             { expiresIn: '1d' }
         );
 
-        // 4. Retornar os dados do usuário e o token para o tablet
         res.json({
             mensagem: 'Login realizado com sucesso! 🔓',
             token,
