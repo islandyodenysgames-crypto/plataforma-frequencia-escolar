@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Frequência Carminha</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-container">
+        <h2>Escola Carminha 🏫</h2>
+        <p>Plataforma de Frequência Escolar</p>
+        
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="login">Usuário</label>
+                <input type="text" id="login" required placeholder="Ex: admin_carminha">
+            </div>
+            
+            <div class="input-group">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" required placeholder="••••••••">
+            </div>
+            
+            <button type="submit" id="btnEntrar">Entrar no Sistema</button>
+        </form>
+        
+        <div id="mensagemErro" class="erro-msg"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const msgErro = document.getElementById('mensagemErro');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Impede a página de recarregar
+            
+            const login = document.getElementById('login').value;
+            const senha = document.getElementById('senha').value;
+            
+            msgErro.textContent = ''; // Limpa erros anteriores
+
+            try {
+                const resposta = await fetch('https://frequencia-carminha.up.railway.app/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ login, senha })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(dados.erro || 'Erro ao tentar fazer login.');
+                }
+
+                // 🔥 SACADA DE MILHÕES: Salva o Token e o Nome no navegador para usar na tela de chamada
+                localStorage.setItem('token_carminha', dados.token);
+                localStorage.setItem('usuario_nome', dados.usuario.nome);
+
+                // Redireciona para o painel de chamadas
+                window.location.href = 'dashboard.html';
+
+            } catch (error) {
+                msgErro.textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html>
