@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro de Alunos - Escola Carminha</title>
+    <title>Gerenciar Alunos - Escola Carminha</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,11 +16,12 @@
         </div>
     </header>
 
-    <main class="dashboard-container" style="max-width: 500px;">
-        <section class="area-chamada">
+    <main class="dashboard-container" style="max-width: 700px;">
+        <!-- Seção de Cadastro -->
+        <section class="area-chamada" style="margin-bottom: 2rem;">
             <h3>Cadastrar Novo Aluno 🎒</h3>
             <p style="color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.9rem;">
-                Insira os dados do estudante para incluí-lo na lista de chamada automática.
+                Insira os dados do estudante para incluí-lo no sistema.
             </p>
 
             <form id="cadastroAlunoForm">
@@ -31,7 +32,7 @@
 
                 <div class="form-group" style="margin-bottom: 2rem;">
                     <label for="selectTurma">Turma do Aluno:</label>
-                    <select id="selectTurma" required style="width: 100%;">
+                    <select id="selectTurma" required style="width: 100%;" onchange="listarAlunosDaTurma(this.value)">
                         <option value="">-- Escolha a Turma --</option>
                         <option value="1º Ano A">1º Ano A</option>
                         <option value="2º Ano B">2º Ano B</option>
@@ -41,24 +42,82 @@
 
                 <button type="submit" id="btnSalvarChamada" style="background-color: var(--primary-color);">Salvar Cadastro</button>
             </form>
-
             <div id="msgFeedback"></div>
+        </section>
+
+        <!-- Nova Seção: Lista de Alunos da Turma Selecionada -->
+        <section id="secaoListaAlunos" class="area-chamada" style="display: none;">
+            <h3 id="tituloLista">Alunos Matriculados</h3>
+            <div class="tabela-responsiva" style="margin-top: 1rem;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th style="text-align: right;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoListaAlunos">
+                        <!-- Injetado via JS -->
+                    </tbody>
+                </table>
+            </div>
         </section>
     </main>
 
     <script>
-        // 🔒 PROTEÇÃO: Bloqueia acesso de usuários deslogados
         const token = localStorage.getItem('token_carminha');
-        if (!token) {
-            window.location.href = 'index.html';
-        }
+        if (!token) window.location.href = 'index.html';
 
         const form = document.getElementById('cadastroAlunoForm');
         const feedback = document.getElementById('msgFeedback');
 
+        // 🔄 BUSCAR E LISTAR ALUNOS DA TURMA
+        async function listarAlunosDaTurma(turma) {
+            const secao = document.getElementById('secaoListaAlunos');
+            const corpo = document.getElementById('corpoListaAlunos');
+            const titulo = document.getElementById('tituloLista');
+
+            if (!turma) {
+                secao.style.display = 'none';
+                return;
+            }
+
+            titulo.textContent = `Alunos Matriculados no ${turma}`;
+
+            try {
+                const resposta = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
+                    method: 'GET',
+                    headers: { 'x-auth-token': token }
+                });
+
+                if (!resposta.ok) throw new Error('Erro ao carregar alunos.');
+                const alunos = await resposta.json();
+
+                corpo.innerHTML = '';
+                if (alunos.length === 0) {
+                    corpo.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#7f8c8d;">Nenhum aluno ativo nesta turma.</td></tr>`;
+                } else {
+                    alunos.forEach(aluno => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${aluno.nome}</strong></td>
+                            <td style="text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                <button onclick="transferirAluno('${aluno._id}', '${aluno.nome}')" style="background-color: #3498db; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">Transferir</button>
+                                <button onclick="desativarAluno('${aluno._id}', '${aluno.nome}')" style="background-color: var(--danger-color); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">Remover</button>
+                            </td>
+                        `;
+                        corpo.appendChild(tr);
+                    });
+                }
+                secao.style.display = 'block';
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // ➕ ENVIAR NOVO CADASTRO
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const nome = document.getElementById('nomeAluno').value;
             const turma = document.getElementById('selectTurma').value;
 
@@ -68,29 +127,63 @@
 
                 const resposta = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/alunos', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-auth-token': token
-                    },
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                     body: JSON.stringify({ nome, turma })
                 });
 
                 const dados = await resposta.json();
-
                 if (!resposta.ok) throw new Error(dados.erro || 'Erro ao cadastrar.');
 
-                feedback.textContent = `Sucesso! ${nome} foi cadastrado(a) no ${turma}. 🎉`;
+                feedback.textContent = `Sucesso! ${nome} foi cadastrado(a). 🎉`;
                 feedback.className = 'sucesso-msg';
                 
-                // Limpa apenas o campo do nome para facilitar o cadastro do próximo aluno da mesma turma
                 document.getElementById('nomeAluno').value = '';
-                document.getElementById('nomeAluno').focus();
+                listarAlunosDaTurma(turma); // Atualiza a lista na hora!
 
             } catch (error) {
                 feedback.textContent = error.message;
                 feedback.className = 'erro-msg';
             }
         });
+
+        // ↩️ FUNÇÃO PARA TRANSFERIR ALUNO (Apenas prepara o comando para a API)
+        async function transferirAluno(id, nome) {
+            const novaTurma = prompt(`Para qual turma deseja transferir o aluno ${nome}?\n(Digite exatamente: "1º Ano A", "2º Ano B" ou "3º Ano A")`);
+            if (!novaTurma) return;
+
+            const turmasValidas = ["1º Ano A", "2º Ano B", "3º Ano A"];
+            if (!turmasValidas.includes(novaTurma)) {
+                return alert("Turma inválida! Digite exatamente como as opções do sistema.");
+            }
+
+            executarAtualizacao(id, { turma: novaTurma }, "Aluno transferido com sucesso!");
+        }
+
+        // ❌ FUNÇÃO PARA REMOVER (DESATIVAR) ALUNO
+        async function desativarAluno(id, nome) {
+            if (!confirm(`Tem certeza que deseja remover o(a) aluno(a) ${nome}?\nEle(a) não aparecerá mais nas listas de chamada.`)) return;
+            
+            executarAtualizacao(id, { ativo: false }, "Aluno removido com sucesso!");
+        }
+
+        // 🚀 ENVIAR ATUALIZAÇÃO PARA O BACK-END
+        async function ejecutarAtualizacao(id, dados, mensagemSucesso) {
+            const turmaAtual = document.getElementById('selectTurma').value;
+            try {
+                const resposta = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify(dados)
+                });
+
+                if (!resposta.ok) throw new Error("Erro ao atualizar dados do aluno.");
+                
+                alert(mensagemSucesso);
+                listarAlunosDaTurma(turmaAtual); // Recarrega a tabela
+            } catch (error) {
+                alert(error.message);
+            }
+        }
     </script>
 </body>
 </html>
