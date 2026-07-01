@@ -3,8 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Alunos - Escola Carminha</title>
+    <title>Gerenciar Escola - Carminha</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .gerenciador-grid { display: flex; gap: 2rem; flex-wrap: wrap; }
+        .col-principal { flex: 2; min-width: 350px; }
+        .col-lateral { flex: 1; min-width: 250px; }
+        .linha-transferencia { background: #f1f2f6; padding: 0.5rem; border-radius: 4px; display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+        .lista-turmas-remover { margin-top: 1rem; list-style: none; }
+        .lista-turmas-remover li { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+    </style>
 </head>
 <body>
     <header class="main-header">
@@ -16,174 +24,225 @@
         </div>
     </header>
 
-    <main class="dashboard-container" style="max-width: 700px;">
-        <!-- Seção de Cadastro -->
-        <section class="area-chamada" style="margin-bottom: 2rem;">
-            <h3>Cadastrar Novo Aluno 🎒</h3>
-            <p style="color: #7f8c8d; margin-bottom: 1.5rem; font-size: 0.9rem;">
-                Insira os dados do estudante para incluí-lo no sistema.
-            </p>
+    <main class="dashboard-container">
+        <div class="gerenciador-grid">
+            
+            <div class="col-principal">
+                <section class="area-chamada" style="margin-bottom: 2rem;">
+                    <h3>Cadastrar Novo Aluno 🎒</h3>
+                    <form id="cadastroAlunoForm">
+                        <div class="form-group" style="margin-bottom: 1.2rem;">
+                            <label for="nomeAluno">Nome Completo:</label>
+                            <input type="text" id="nomeAluno" required placeholder="Ex: Maria Souza Oliveira">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 2rem;">
+                            <label for="selectTurma">Turma:</label>
+                            <select id="selectTurma" required onchange="listarAlunosDaTurma(this.value)">
+                                <option value="">-- Selecione uma Turma --</option>
+                            </select>
+                        </div>
+                        <button type="submit" id="btnSalvarChamada" style="background-color: var(--primary-color);">Salvar Aluno</button>
+                    </form>
+                    <div id="msgFeedback"></div>
+                </section>
 
-            <form id="cadastroAlunoForm">
-                <div class="form-group" style="margin-bottom: 1.2rem;">
-                    <label for="nomeAluno">Nome Completo do Aluno:</label>
-                    <input type="text" id="nomeAluno" required placeholder="Ex: Maria Souza Oliveira" style="width: 100%;">
-                </div>
-
-                <div class="form-group" style="margin-bottom: 2rem;">
-                    <label for="selectTurma">Turma do Aluno:</label>
-                    <select id="selectTurma" required style="width: 100%;" onchange="listarAlunosDaTurma(this.value)">
-                        <option value="">-- Escolha a Turma --</option>
-                        <option value="1º Ano A">1º Ano A</option>
-                        <option value="2º Ano B">2º Ano B</option>
-                        <option value="3º Ano A">3º Ano A</option>
-                    </select>
-                </div>
-
-                <button type="submit" id="btnSalvarChamada" style="background-color: var(--primary-color);">Salvar Cadastro</button>
-            </form>
-            <div id="msgFeedback"></div>
-        </section>
-
-        <!-- Nova Seção: Lista de Alunos da Turma Selecionada -->
-        <section id="secaoListaAlunos" class="area-chamada" style="display: none;">
-            <h3 id="tituloLista">Alunos Matriculados</h3>
-            <div class="tabela-responsiva" style="margin-top: 1rem;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th style="text-align: right;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="corpoListaAlunos">
-                        <!-- Injetado via JS -->
-                    </tbody>
-                </table>
+                <section id="secaoListaAlunos" class="area-chamada" style="display: none;">
+                    <h3 id="tituloLista">Alunos Matriculados</h3>
+                    <div class="tabela-responsiva">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th style="text-align: right;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="corpoListaAlunos"></tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
-        </section>
+
+            <div class="col-lateral">
+                <section class="area-chamada">
+                    <h3>Gerenciar Turmas 🏫</h3>
+                    <form id="cadastroTurmaForm" style="margin-top: 1rem;">
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label for="nomeTurma">Nova Turma:</label>
+                            <input type="text" id="nomeTurma" required placeholder="Ex: 4º Ano C">
+                        </div>
+                        <button type="submit" style="background-color: var(--success-color); color:white; border:none; padding:0.5rem; width:100%; border-radius:4px; font-weight:bold;">+ Criar Turma</button>
+                    </form>
+                    
+                    <ul id="listaTurmasRemover" class="lista-turmas-remover"></ul>
+                </section>
+            </div>
+
+        </div>
     </main>
 
     <script>
         const token = localStorage.getItem('token_carminha');
         if (!token) window.location.href = 'index.html';
 
-        const form = document.getElementById('cadastroAlunoForm');
-        const feedback = document.getElementById('msgFeedback');
+        let todasAsTurmas = [];
 
-        // 🔄 BUSCAR E LISTAR ALUNOS DA TURMA
+        // 🔄 CARREGAR TODAS AS TURMAS DO BANCO
+        async function carregarTurmas() {
+            try {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
+                    headers: { 'x-auth-token': token }
+                });
+                todasAsTurmas = await res.json();
+                
+                // Atualiza o seletor de turmas do aluno
+                const select = document.getElementById('selectTurma');
+                const valorSelecionado = select.value;
+                select.innerHTML = '<option value="">-- Selecione uma Turma --</option>';
+                
+                // Atualiza a lista de remoção de turmas
+                const listaRemover = document.getElementById('listaTurmasRemover');
+                listaRemover.innerHTML = '';
+
+                todasAsTurmas.forEach(t => {
+                    select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
+                    listaRemover.innerHTML += `
+                        <li>
+                            <span>${t.nome}</span>
+                            <button onclick="removerTurma('${t._id}', '${t.nome}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer;">Deletar</button>
+                        </li>
+                    `;
+                });
+
+                if(valorSelecionado) select.value = valorSelecionado;
+            } catch (err) { console.error(err); }
+        }
+
+        // ➕ CADASTRAR TURMA
+        document.getElementById('cadastroTurmaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('nomeTurma').value;
+            try {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify({ nome })
+                });
+                const dados = await res.json();
+                if(!res.ok) throw new Error(dados.erro);
+                document.getElementById('nomeTurma').value = '';
+                await carregarTurmas();
+            } catch(err) { alert(err.message); }
+        });
+
+        // 🗑️ REMOVER TURMA
+        async function removerTurma(id, nome) {
+            if(!confirm(`Excluir a turma "${nome}"? Alunos vinculados a ela não sumirão, mas a turma deixará de listar.`)) return;
+            try {
+                await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/turmas/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'x-auth-token': token }
+                });
+                await carregarTurmas();
+            } catch(err) { alert(err.message); }
+        }
+
+        // 🔄 LISTAR ALUNOS
         async function listarAlunosDaTurma(turma) {
             const secao = document.getElementById('secaoListaAlunos');
             const corpo = document.getElementById('corpoListaAlunos');
-            const titulo = document.getElementById('tituloLista');
+            if (!turma) { secao.style.display = 'none'; return; }
 
-            if (!turma) {
-                secao.style.display = 'none';
-                return;
-            }
-
-            titulo.textContent = `Alunos Matriculados no ${turma}`;
-
+            document.getElementById('tituloLista').textContent = `Alunos Matriculados no ${turma}`;
             try {
-                const resposta = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
-                    method: 'GET',
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     headers: { 'x-auth-token': token }
                 });
-
-                if (!resposta.ok) throw new Error('Erro ao carregar alunos.');
-                const alunos = await resposta.json();
-
+                const alunos = await res.json();
                 corpo.innerHTML = '';
+
                 if (alunos.length === 0) {
-                    corpo.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#7f8c8d;">Nenhum aluno ativo nesta turma.</td></tr>`;
+                    corpo.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#7f8c8d;">Nenhum aluno ativo.</td></tr>`;
                 } else {
                     alunos.forEach(aluno => {
                         const tr = document.createElement('tr');
                         tr.innerHTML = `
-                            <td><strong>${aluno.nome}</strong></td>
-                            <td style="text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
-                                <button onclick="transferirAluno('${aluno._id}', '${aluno.nome}')" style="background-color: #3498db; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">Transferir</button>
-                                <button onclick="desativarAluno('${aluno._id}', '${aluno.nome}')" style="background-color: var(--danger-color); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold;">Remover</button>
+                            <td>
+                                <strong>${aluno.nome}</strong>
+                                <div id="area-transf-${aluno._id}" style="display:none;" class="linha-transferencia">
+                                    <select id="select-transf-${aluno._id}"></select>
+                                    <button onclick="confirmarTransferencia('${aluno._id}')" style="background:var(--success-color); color:white; border:none; padding:2px 8px; border-radius:3px;">Ok</button>
+                                    <button onclick="cancelarTransferencia('${aluno._id}')" style="background:#7f8c8d; color:white; border:none; padding:2px 8px; border-radius:3px;">X</button>
+                                </div>
+                            </td>
+                            <td style="text-align: right; vertical-align:top;">
+                                <button onclick="mostrarBarraTransferir('${aluno._id}')" style="background-color: #3498db; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor:pointer;">Transferir</button>
+                                <button onclick="desativarAluno('${aluno._id}', '${aluno.nome}')" style="background-color: var(--danger-color); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor:pointer;">Remover</button>
                             </td>
                         `;
                         corpo.appendChild(tr);
                     });
                 }
                 secao.style.display = 'block';
-            } catch (error) {
-                console.error(error);
-            }
+            } catch (err) { console.error(err); }
         }
 
-        // ➕ ENVIAR NOVO CADASTRO
-        form.addEventListener('submit', async (e) => {
+        // ➕ CADASTRAR ALUNO
+        document.getElementById('cadastroAlunoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const nome = document.getElementById('nomeAluno').value;
             const turma = document.getElementById('selectTurma').value;
-
             try {
-                feedback.textContent = 'Cadastrando aluno...';
-                feedback.className = 'info-msg';
-
-                const resposta = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/alunos', {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/alunos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                     body: JSON.stringify({ nome, turma })
                 });
-
-                const dados = await resposta.json();
-                if (!resposta.ok) throw new Error(dados.erro || 'Erro ao cadastrar.');
-
-                feedback.textContent = `Sucesso! ${nome} foi cadastrado(a). 🎉`;
-                feedback.className = 'sucesso-msg';
-                
+                if (!res.ok) throw new Error('Erro ao cadastrar.');
                 document.getElementById('nomeAluno').value = '';
-                listarAlunosDaTurma(turma); // Atualiza a lista na hora!
-
-            } catch (error) {
-                feedback.textContent = error.message;
-                feedback.className = 'erro-msg';
-            }
+                listarAlunosDaTurma(turma);
+            } catch (error) { alert(error.message); }
         });
 
-        // ↩️ FUNÇÃO PARA TRANSFERIR ALUNO (Apenas prepara o comando para a API)
-        async function transferirAluno(id, nome) {
-            const novaTurma = prompt(`Para qual turma deseja transferir o aluno ${nome}?\n(Digite exatamente: "1º Ano A", "2º Ano B" ou "3º Ano A")`);
-            if (!novaTurma) return;
+        // 🔄 MOSTRAR SELECT DE TRANSFERÊNCIA
+        function mostrarBarraTransferir(id) {
+            const div = document.getElementById(`area-transf-${id}`);
+            const select = document.getElementById(`select-transf-${id}`);
+            select.innerHTML = '';
+            todasAsTurmas.forEach(t => {
+                select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
+            });
+            div.style.display = 'flex';
+        }
+        function cancelarTransferencia(id) { document.getElementById(`area-transf-${id}`).style.display = 'none'; }
 
-            const turmasValidas = ["1º Ano A", "2º Ano B", "3º Ano A"];
-            if (!turmasValidas.includes(novaTurma)) {
-                return alert("Turma inválida! Digite exatamente como as opções do sistema.");
-            }
-
-            executarAtualizacao(id, { turma: novaTurma }, "Aluno transferido com sucesso!");
+        async function confirmarTransferencia(id) {
+            const novaTurma = document.getElementById(`select-transf-${id}`).value;
+            await executarAtualizacao(id, { turma: novaTurma }, "Aluno transferido com sucesso!");
         }
 
-        // ❌ FUNÇÃO PARA REMOVER (DESATIVAR) ALUNO
+        // ❌ REMOVER (DESATIVAR) ALUNO
         async function desativarAluno(id, nome) {
-            if (!confirm(`Tem certeza que deseja remover o(a) aluno(a) ${nome}?\nEle(a) não aparecerá mais nas listas de chamada.`)) return;
-            
-            executarAtualizacao(id, { ativo: false }, "Aluno removido com sucesso!");
+            if (!confirm(`Deseja remover o(a) aluno(a) ${nome}?`)) return;
+            await executarAtualizacao(id, { ativo: false }, "Aluno removido com sucesso!");
         }
 
         // 🚀 ENVIAR ATUALIZAÇÃO PARA O BACK-END
-        async function ejecutarAtualizacao(id, dados, mensagemSucesso) {
+        async function executarAtualizacao(id, dados, mensagemSucesso) {
             const turmaAtual = document.getElementById('selectTurma').value;
             try {
-                const resposta = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${id}`, {
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                     body: JSON.stringify(dados)
                 });
-
-                if (!resposta.ok) throw new Error("Erro ao atualizar dados do aluno.");
-                
+                if (!res.ok) throw new Error("Erro ao atualizar.");
                 alert(mensagemSucesso);
-                listarAlunosDaTurma(turmaAtual); // Recarrega a tabela
-            } catch (error) {
-                alert(error.message);
-            }
+                listarAlunosDaTurma(turmaAtual);
+            } catch (error) { alert(error.message); }
         }
+
+        // Inicialização
+        carregarTurmas();
     </script>
 </body>
 </html>
