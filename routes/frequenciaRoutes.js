@@ -161,29 +161,31 @@ router.delete('/deletar-chamada/:turma/:data', auth, async (req, res) => {
     }
 });
 
-// 📊 GERAR RELATÓRIO ESTATÍSTICO DA TURMA FILTRADO POR MÊS/ANO
-router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
+// 📊 GERAR RELATÓRIO ESTATÍSTICO DA TURMA POR INTERVALO DE DIAS PERSONALIZADO
+router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
     try {
-        const { turma, anoMes } = req.params;
+        const { turma, dataInicio, dataFim } = req.params; // Ex: "2026-07-01" e "2026-07-15"
         
-        const [ano, mes] = anoMes.split('-').map(Number);
+        // Converte as strings recebidas em datas UTC puras cobrindo o dia inteiro de ponta a ponta
+        const [anoI, mesI, diaI] = dataInicio.split('-').map(Number);
+        const [anoF, mesF, diaF] = dataFim.split('-').map(Number);
         
-        const dataInicio = new Date(Date.UTC(ano, mes - 1, 1, 0, 0, 0));
-        const dataFim = new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999));
+        const deData = new Date(Date.UTC(anoI, mesI - 1, diaI, 0, 0, 0));
+        const ateData = new Date(Date.UTC(anoF, mesF - 1, diaF, 23, 59, 59, 999));
 
-        // 1. Busca alunos ativos
+        // 1. Busca alunos ativos na turma
         const alunos = await Aluno.find({ turma, ativo: true }).sort({ nome: 1 });
         
-        // 2. Busca registros do mês de forma simplificada
+        // 2. Busca abrangente no intervalo que aceita tanto tipo Date quanto String ISO ordenável
         const registros = await Frequencia.find({
             turma,
             $or: [
-                { data: { $gte: dataInicio, $lte: dataFim } },
-                { data: { $gte: `${anoMes}-01`, $lte: `${anoMes}-31` } }
+                { data: { $gte: deData, $lte: ateData } },
+                { data: { $gte: dataInicio, $lte: dataFim } }
             ]
         });
 
-        // 3. Mapeia e calcula as estatísticas
+        // 3. Mapeamento e cálculo estatístico por estudante
         const relatorio = alunos.map(aluno => {
             const idString = aluno._id.toString();
             
@@ -224,7 +226,6 @@ router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
 
         res.json(relatorio);
     } catch (error) {
-        // Retorna a mensagem de erro original do JavaScript/Mongoose para sabermos o ponto exato da quebra
         res.status(500).json({ erro: error.message });
     }
 });
