@@ -13,16 +13,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve os arquivos estáticos da pasta "public" (Onde ficam seus HTMLs, CSS e imagens)
+// Serve os arquivos estáticos da pasta "public"
 app.use(express.static('public'));
 
 // ==========================================
 // 📺 MEMÓRIA DA PLAYLIST (CENTRAL DE MÍDIAS)
 // ==========================================
-// Criamos uma estrutura volátil para armazenar os itens da playlist temporariamente.
-// Se preferir persistência pesada no futuro, pode mover para um Model do Mongoose.
 let playlistCentralMidias = [
-    { id: 1, tipo: 'video', titulo: 'Vídeo Educativo Institucional', url: 'https://www.w3schools.com/html/mov_bbb.mp4', tempoExibicao: 15 }
+    { id: 1, tipo: 'video', titulo: 'Vídeo Educativo Institucional', url: 'https://www.w3schools.com/html/mov_bbb.mp4', tempoExibicao: 15, orientacao: 'horizontal' }
 ];
 
 // Rota para buscar todos os itens da playlist
@@ -37,20 +35,21 @@ app.get('/api/playlist', (req, res) => {
 // Rota para adicionar um novo item à playlist da TV
 app.post('/api/playlist', (req, res) => {
     try {
-        // CORREÇÃO: Adicionado tempoExibicao na desestruturação do corpo da requisição
-        const { tipo, titulo, url, tempoExibicao } = req.body;
+        // Captura do campo 'orientacao' enviado pelo front-end
+        const { tipo, titulo, url, tempoExibicao, orientacao } = req.body;
         
         if (!tipo || !titulo || !url) {
             return res.status(400).json({ erro: 'Tipo, título e URL são obrigatórios.' });
         }
 
         const novoItem = {
-            id: Date.now(), // Gera um ID numérico único usando o timestamp atual
+            id: Date.now(), 
             tipo,
             titulo,
             url,
-            // CORREÇÃO: Garante o salvamento do tempo vindo do front ou assume 15 segundos por padrão
-            tempoExibicao: parseInt(tempoExibicao, 10) || 15
+            tempoExibicao: parseInt(tempoExibicao, 10) || 15,
+            // Salva a orientação enviada ou assume 'vertical' como padrão
+            orientacao: orientacao || 'vertical' 
         };
 
         playlistCentralMidias.push(novoItem);
