@@ -72,7 +72,7 @@
             to { opacity: 1; transform: scale(1); }
         }
 
-        /* --- TELA 1: PODIO DO TOP 3 COM DESTAQUE MÁXIMO E FOTO DO CAMPEÃO --- */
+        /* --- 🏆 SUPER DESTAQUE DA TURMA CAMPEÃ --- */
         .podio-container {
             display: flex;
             flex-direction: column;
@@ -80,83 +80,131 @@
             width: 100%;
         }
         .podio-titulo {
-            font-size: 3rem;
+            font-size: 3.2rem;
             font-weight: 900;
             color: var(--cor-ouro);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-transform: uppercase;
-            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+            letter-spacing: 2px;
         }
 
-        /* Container da foto da turma campeã acima do primeiro colocado */
-        .container-foto-campeao {
-            margin-bottom: 25px;
-            position: relative;
-            animation: pulseGlow 2s infinite alternate;
-        }
-        .foto-campeao-img {
-            width: 220px;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 12px;
+        /* Área Gigante e Imponente para o 1º Lugar */
+        .secao-campeao-master {
+            background: linear-gradient(135deg, #242217 0%, #111827 100%);
             border: 4px solid var(--cor-ouro);
-            box-shadow: 0 8px 24px rgba(234, 179, 8, 0.4);
+            border-radius: 24px;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            max-width: 1200px;
+            width: 95%;
+            box-shadow: 0 20px 50px rgba(234, 179, 8, 0.25);
+            margin-bottom: 30px;
+            box-sizing: border-box;
+            animation: pulseGlow 2.5s infinite alternate;
+        }
+
+        .box-foto-campeao {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        /* Foto aumentada significativamente */
+        .foto-campeao-img {
+            width: 440px;
+            height: 280px;
+            object-fit: cover;
+            border-radius: 16px;
+            border: 3px solid #fef08a;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             background-color: var(--bg-card);
         }
-        .label-campeao {
+
+        .badge-campeao {
             position: absolute;
-            bottom: -12px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: -15px;
+            left: -15px;
             background: var(--cor-ouro);
             color: #000;
+            font-size: 1.8rem;
             font-weight: 900;
-            padding: 2px 14px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+
+        .info-campeao-textos {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .label-ouro-topo {
+            color: var(--cor-ouro);
+            font-size: 1.5rem;
+            font-weight: 800;
             text-transform: uppercase;
-            white-space: nowrap;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .nome-campeao-grande {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #ffffff;
+            margin: 0;
+            line-height: 1.1;
+            word-break: break-word;
+        }
+
+        .porcentagem-campeao-grande {
+            font-size: 5rem;
+            font-weight: 900;
+            color: var(--cor-sucesso);
+            margin: 10px 0 0 0;
+            text-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
         }
 
         @keyframes pulseGlow {
-            from { transform: scale(1); box-shadow: 0 0 10px rgba(234, 179, 8, 0.2); }
-            to { transform: scale(1.03); box-shadow: 0 0 25px rgba(234, 179, 8, 0.5); }
+            from { transform: scale(1); box-shadow: 0 15px 40px rgba(234, 179, 8, 0.15); }
+            to { transform: scale(1.015); box-shadow: 0 15px 55px rgba(234, 179, 8, 0.35); }
         }
 
-        .podio-estrutura {
+        /* Demais colocados do pódio em formato reduzido inferior */
+        .podio-estrutura-inferior {
             display: flex;
             justify-content: center;
-            align-items: flex-end;
-            gap: 30px;
+            gap: 40px;
             width: 100%;
-            max-width: 1100px;
-            margin-top: 10px;
+            max-width: 1200px;
         }
-        .podio-coluna {
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            border: 2px solid #334155;
-            border-radius: 20px 20px 0 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-            flex: 1;
-            transition: all 0.5s ease;
-        }
-        .podio-coluna.primeiro {
-            height: 330px;
-            border-color: var(--cor-ouro);
-            background: linear-gradient(180deg, #2e2a14 0%, #0f172a 100%);
-            box-shadow: 0 0 40px rgba(234, 179, 8, 0.15);
-            z-index: 2;
-        }
-        .podio-coluna.segundo { height: 250px; border-color: var(--cor-prata); }
-        .podio-coluna.terceiro { height: 210px; border-color: var(--cor-bronze); }
 
-        .medalha-grande { font-size: 3.5rem; margin-bottom: 10px; }
-        .podio-turma { font-size: 2.3rem; font-weight: 800; color: white; word-break: break-all; }
-        .podio-porcentagem { font-size: 1.9rem; font-weight: bold; color: var(--cor-sucesso); margin-top: 10px; }
+        .card-sub-podio {
+            background: var(--bg-card);
+            border: 2px solid #334155;
+            border-radius: 16px;
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+            box-sizing: border-box;
+        }
+
+        .card-sub-podio.segundo { border-color: var(--cor-prata); }
+        .card-sub-podio.terceiro { border-color: var(--cor-bronze); }
+
+        .medalha-sub { font-size: 2.5rem; }
+        .sub-textos { text-align: left; }
+        .sub-turma { font-size: 1.8rem; font-weight: 800; color: white; }
+        .sub-porcentagem { font-size: 1.5rem; font-weight: bold; color: var(--cor-sucesso); }
 
         /* --- TELA 2: LISTA COMPLETA --- */
         .titulo-geral {
@@ -240,34 +288,37 @@
         
         <div id="slideCampeao" class="slide ativo">
             <div class="podio-container">
-                <div class="podio-titulo">🏆 LÍDERES EM ASSIDUIDADE HOJE</div>
+                <div class="podio-titulo">🏆 LÍDER EM ASSIDUIDADE HOJE</div>
                 
-                <div class="container-foto-campeao">
-                    <img id="podio1_foto" src="" class="foto-campeao-img" onerror="this.src='https://placehold.co/400x250/1e293b/f8fafc?text=Sem+Foto+📸'" alt="Foto da Turma Campeã">
-                    <div class="label-campeao">1º Lugar Geral</div>
+                <div class="secao-campeao-master">
+                    <div class="box-foto-campeao">
+                        <span class="badge-campeao">👑</span>
+                        <img id="podio1_foto" src="" class="foto-campeao-img" onerror="this.src='https://placehold.co/500x300/1e293b/f8fafc?text=Sem+Foto+📸'" alt="Foto da Turma Campeã">
+                    </div>
+                    <div class="info-campeao-textos">
+                        <span class="label-ouro-topo">1º Lugar Geral</span>
+                        <h1 id="podio1_nome" class="nome-campeao-grande">--</h1>
+                        <h2 id="podio1_porcentagem" class="porcentagem-campeao-grande">--%</h2>
+                    </div>
                 </div>
 
-                <div class="podio-estrutura">
-                    
-                    <div class="podio-coluna segundo">
-                        <div class="medalha-grande">🥈</div>
-                        <div id="podio2_nome" class="podio-turma">--</div>
-                        <div id="podio2_porcentagem" class="podio-porcentagem">--%</div>
+                <div class="podio-estrutura-inferior">
+                    <div class="card-sub-podio segundo">
+                        <span class="medalha-sub">🥈</span>
+                        <div class="sub-textos">
+                            <div id="podio2_nome" class="sub-turma">--</div>
+                            <div id="podio2_porcentagem" class="sub-porcentagem">--%</div>
+                        </div>
                     </div>
-
-                    <div class="podio-coluna primeiro">
-                        <div class="medalha-grande">🥇</div>
-                        <div id="podio1_nome" class="podio-turma">--</div>
-                        <div id="podio1_porcentagem" class="podio-porcentagem">--%</div>
+                    <div class="card-sub-podio terceiro">
+                        <span class="medalha-sub">🥉</span>
+                        <div class="sub-textos">
+                            <div id="podio3_nome" class="sub-turma">--</div>
+                            <div id="podio3_porcentagem" class="sub-porcentagem">--%</div>
+                        </div>
                     </div>
-
-                    <div class="podio-coluna terceiro">
-                        <div class="medalha-grande">🥉</div>
-                        <div id="podio3_nome" class="podio-turma">--</div>
-                        <div id="podio3_porcentagem" class="podio-porcentagem">--%</div>
-                    </div>
-
                 </div>
+
             </div>
         </div>
 
@@ -300,8 +351,8 @@
         let indiceSlideAtual = 0;
 
         carregarDadosPainel();
-        setInterval(carregarDadosPainel, 3 * 60 * 1000); // Sincroniza dados a cada 3 minutos
-        setInterval(alternarSlides, 15 * 1000);          // Rotaciona a cada 15 segundos
+        setInterval(carregarDadosPainel, 3 * 60 * 1000); 
+        setInterval(alternarSlides, 15 * 1000);          
 
         async function carregarDadosPainel() {
             try {
@@ -314,22 +365,19 @@
                     return;
                 }
 
-                // 1. Média Global
                 let somaAproveitamento = 0;
                 dados.forEach(t => somaAproveitamento += t.aproveitamento);
                 document.getElementById('mediaGeralEscola').textContent = `${Math.round(somaAproveitamento / dados.length)}%`;
 
-                // 2. Preencher Pódio (Top 3) e injetar a foto recuperada do Banco
                 if (dados[0]) {
                     document.getElementById('podio1_nome').textContent = dados[0].turma;
                     document.getElementById('podio1_porcentagem').textContent = `${dados[0].aproveitamento}%`;
                     
-                    // Tratamento dinâmico da imagem da TV para o campeão atual
                     const imgCampeao = document.getElementById('podio1_foto');
                     if (dados[0].fotoUrl && dados[0].fotoUrl.trim() !== '') {
                         imgCampeao.src = dados[0].fotoUrl;
                     } else {
-                        imgCampeao.src = 'https://placehold.co/400x250/1e293b/f8fafc?text=' + encodeURIComponent(dados[0].turma);
+                        imgCampeao.src = 'https://placehold.co/500x300/1e293b/f8fafc?text=' + encodeURIComponent(dados[0].turma);
                     }
                 } else {
                     document.getElementById('podio1_nome').textContent = '--';
@@ -343,7 +391,6 @@
                 document.getElementById('podio3_nome').textContent = dados[2] ? dados[2].turma : '--';
                 document.getElementById('podio3_porcentagem').textContent = dados[2] ? `${dados[2].aproveitamento}%` : '--%';
 
-                // 3. Renderizar Lista Completa 
                 renderizarTodasAsTurmas(dados);
 
             } catch (err) {
@@ -403,7 +450,7 @@
         function mostrarPainelVazio() {
             document.getElementById('podio1_nome').textContent = "Sem dados";
             document.getElementById('mediaGeralEscola').textContent = '0%';
-            document.getElementById('podio1_foto').src = 'https://placehold.co/400x250/1e293b/f8fafc?text=Aguardando+Chamada+⏳';
+            document.getElementById('podio1_foto').src = 'https://placehold.co/500x300/1e293b/f8fafc?text=Aguardando+Chamada+⏳';
         }
     </script>
 </body>
