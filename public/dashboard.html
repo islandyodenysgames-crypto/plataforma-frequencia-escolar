@@ -28,31 +28,54 @@
             border: 1px solid #00000015;
         }
 
-        /* 📅 Estilos para a barra de datas concluídas */
-        .datas-concluidas-container {
-            margin-top: 10px;
+        /* 🗂️ Painel de Histórico Organizador */
+        .painel-historico {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 1.2rem;
+            margin-top: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+        }
+        .titulo-historico {
+            font-size: 1rem;
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 10px;
             display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .lista-historico-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
             gap: 8px;
-            flex-wrap: wrap;
+            max-height: 150px;
+            overflow-y: auto;
+            padding-right: 5px;
         }
-        .badge-data-salva {
-            background-color: #27ae60;
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
+        .item-historico-btn {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 6px 10px;
+            border-radius: 6px;
             font-size: 0.8rem;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
-            border: none;
-            transition: background 0.2s;
+            text-align: center;
+            transition: all 0.2s;
         }
-        .badge-data-salva:hover {
-            background-color: #218c53;
+        .item-historico-btn:hover {
+            background: #e2e8f0;
+            border-color: #94a3b8;
+            color: #0f172a;
         }
-        .txt-historico-vazio {
+        .txt-vazio {
             font-size: 0.85rem;
-            color: #7f8c8d;
+            color: #64748b;
             font-style: italic;
+            grid-column: 1 / -1;
         }
     </style>
 </head>
@@ -80,14 +103,16 @@
             <div class="form-group">
                 <label for="inputData">Data da Chamada:</label>
                 <input type="date" id="inputData">
-                
-                <div style="margin-top: 8px; font-size: 0.85rem; font-weight: bold; color: #2c3e50;">Chamadas realizadas:</div>
-                <div id="containerDatasConcluidas" class="datas-concluidas-container">
-                    <span class="txt-historico-vazio">Selecione uma turma para ver o histórico.</span>
-                </div>
             </div>
 
             <button onclick="carregarAlunos()" id="btnBuscar">Buscar Lista</button>
+            
+            <div class="painel-historico">
+                <h4 class="titulo-historico">📅 Chamadas já Realizadas nesta Turma:</h4>
+                <div id="containerDatasConcluidas" class="lista-historico-links">
+                    <span class="txt-vazio">Selecione uma turma para carregar o histórico de chamadas.</span>
+                </div>
+            </div>
         </section>
 
         <section id="areaChamada" class="area-chamada" style="display: none;">
@@ -142,15 +167,17 @@
             }
         }
 
-        // 📅 DETECTAR E MOSTRAR DIAS QUE JÁ POSSUEM CHAMADA
+        // 📅 ATUALIZAR O PAINEL DE HISTÓRICO COM AS REQUISIÇÕES JÁ TRATADAS
         async function atualizarPainelDatasDaTurma(turma) {
             const container = document.getElementById('containerDatasConcluidas');
             if (!turma) {
-                container.innerHTML = '<span class="txt-historico-vazio">Selecione uma turma para ver o histórico.</span>';
+                container.innerHTML = '<span class="txt-vazio">Selecione uma turma para carregar o histórico de chamadas.</span>';
                 return;
             }
 
             try {
+                container.innerHTML = '<span class="txt-vazio">Buscando histórico no banco...</span>';
+                
                 const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/datas-concluidas/${encodeURIComponent(turma)}`, {
                     headers: { 'x-auth-token': token }
                 });
@@ -160,20 +187,20 @@
                 container.innerHTML = '';
 
                 if (datas.length === 0) {
-                    container.innerHTML = '<span class="txt-historico-vazio">Nenhuma chamada realizada para esta turma ainda.</span>';
+                    container.innerHTML = '<span class="txt-vazio">Nenhuma chamada registrada para esta turma ainda.</span>';
                     return;
                 }
 
-                // Cria botões dinâmicos para cada data retornada
                 datas.forEach(dataIso => {
-                    // Formata a data de AAAA-MM-DD para DD/MM/AAAA para exibição amigável ao usuário
+                    // Formata a exibição visual para DD/MM/AAAA
                     const partes = dataIso.split('-');
                     const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
 
                     const btnData = document.createElement('button');
-                    btnData.className = 'badge-data-salva';
+                    btnData.className = 'item-historico-btn';
+                    btnData.type = 'button';
                     btnData.textContent = dataFormatada;
-                    // Se o professor clicar no botão, preenche o calendário e busca a lista automaticamente
+                    
                     btnData.onclick = () => {
                         document.getElementById('inputData').value = dataIso;
                         carregarAlunos();
@@ -183,7 +210,7 @@
                 });
 
             } catch (err) {
-                container.innerHTML = '<span class="txt-historico-vazio" style="color:red;">Erro ao carregar histórico de datas.</span>';
+                container.innerHTML = '<span class="txt-vazio" style="color:#d63031;">Erro ao processar histórico de chamadas.</span>';
             }
         }
 
@@ -196,7 +223,9 @@
             if (!dataSelecionada) return alert('Por favor, selecione uma data!');
 
             try {
-                // 1. Busca os alunos ativos cadastrados na turma
+                // Garante que o painel lateral esteja atualizado caso a chamada tenha sido engatada direto
+                atualizarPainelDatasDaTurma(turma);
+
                 const respostaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
@@ -204,14 +233,12 @@
                 if (!respostaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
                 alunosCarregados = await respostaAlunos.json();
 
-                // 2. Tenta capturar o histórico de chamadas do banco para esta data e turma
                 const respostaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
                 const historico = respostaHistorico.ok ? await respostaHistorico.json() : [];
 
-                // 3. Renderiza a tabela cruzando as informações
                 renderizarLista(historico);
 
             } catch (error) {
@@ -240,7 +267,7 @@
             
             if (chamadaJaFeita) {
                 tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-salvo">✓ CHAMADA CONCLUÍDA</span>`;
-                feedback.textContent = 'ℹ️ Exibindo chamada já realizada nesta data. Modificações feitas abaixo sobrescreverão o registro antigo ao salvar.';
+                feedback.textContent = 'ℹ| Exibindo chamada já realizada nesta data. Modificações feitas abaixo sobrescreverão o registro antigo ao salvar.';
                 feedback.className = 'info-msg';
             } else {
                 tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-pendente">⚠️ CHAMADA PENDENTE</span>`;
@@ -282,7 +309,7 @@
             document.getElementById('areaChamada').style.display = 'block';
         }
 
-        // 🔘 ALTERAR PRESENÇA / FALTA (Estilização dos botões)
+        // 🔘 ALTERAR PRESENÇA / FALTA
         function definirPresenca(index, isPresente) {
             const btnP = document.getElementById(`btn-p-${index}`);
             const btnF = document.getElementById(`btn-f-${index}`);
@@ -342,7 +369,6 @@
                 feedback.className = resposta.ok ? 'sucesso-msg' : 'erro-msg';
 
                 if(resposta.ok) {
-                    // 🔥 ATUALIZADO: Recarrega as listas de botões e o status da tabela imediatamente
                     atualizarPainelDatasDaTurma(turma);
                     setTimeout(() => carregarAlunos(), 1000);
                 }
@@ -353,7 +379,6 @@
             }
         }
 
-        // 🚪 LOGOUT
         function logout() {
             localStorage.clear();
             window.location.href = 'index.html';
