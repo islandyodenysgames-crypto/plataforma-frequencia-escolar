@@ -6,12 +6,21 @@
     <title>Gerenciar Escola - Carminha</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        /* Mapeamento de variáveis caso o style.css falhe */
+        :root {
+            --primary-color: #3b82f6;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+        }
         .gerenciador-grid { display: flex; gap: 2rem; flex-wrap: wrap; }
         .col-principal { flex: 2; min-width: 350px; }
         .col-lateral { flex: 1; min-width: 250px; }
-        .linha-transferencia { background: #f1f2f6; padding: 0.5rem; border-radius: 4px; display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+        .linha-transferencia { background: #f1f2f6; padding: 0.5rem; border-radius: 4px; display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; color: #1e293b; }
         .lista-turmas-remover { margin-top: 1rem; list-style: none; padding: 0; }
         .lista-turmas-remover li { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+        
+        /* Ajuste visual para os botões de ação na tabela */
+        .btn-acao { border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: pointer; margin-left: 5px; }
     </style>
 </head>
 <body>
@@ -19,7 +28,7 @@
         <div class="header-content">
             <h2>Escola Carminha 🏫</h2>
             <div class="user-info">
-                <button id="btnVoltar" onclick="window.location.href='dashboard.html'">← Voltar ao Painel</button>
+                <button id="btnVoltar" onclick="window.location.href='dashboard.html'" style="cursor: pointer;">← Voltar ao Painel</button>
             </div>
         </div>
     </header>
@@ -41,7 +50,7 @@
                                 <option value="">-- Selecione uma Turma --</option>
                             </select>
                         </div>
-                        <button type="submit" id="btnSalvarChamada" style="background-color: var(--primary-color);">Salvar Aluno</button>
+                        <button type="submit" id="btnSalvarChamada" style="background-color: var(--primary-color); color: white; border: none; padding: 0.6rem; border-radius: 4px; font-weight: bold; width: 100%; cursor: pointer;">Salvar Aluno</button>
                     </form>
                     <div id="msgFeedback"></div>
                 </section>
@@ -114,13 +123,14 @@
                         select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
                         listaRemover.innerHTML += `
                             <li>
-                                <span>${t.nome}</span>
-                                <button onclick="removerTurma('${t._id}', '${t.nome}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer;">Deletar</button>
-                            </li>
+                                <span><strong>${t.nome}</strong></span>
+                                <button onclick="removerTurma('${t._id}', '${t.nome}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer; padding: 5px;">Deletar</button>
+                            </td>
                         `;
                     });
                 }
 
+                // Mantém selecionado o item anterior para não resetar a experiência visual do usuário
                 if(valorSelecionado) select.value = valorSelecionado;
             } catch (err) { 
                 console.error("Erro ao carregar turmas:", err);
@@ -131,7 +141,10 @@
         // ➕ CADASTRAR TURMA
         document.getElementById('cadastroTurmaForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const nome = document.getElementById('nomeTurma').value;
+            const nomeInput = document.getElementById('nomeTurma');
+            const nome = nomeInput.value.trim();
+            if(!nome) return;
+
             try {
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
                     method: 'POST',
@@ -141,7 +154,7 @@
                 const dados = await res.json();
                 if(!res.ok) throw new Error(dados.erro || 'Erro ao salvar turma.');
                 
-                document.getElementById('nomeTurma').value = '';
+                nomeInput.value = '';
                 await carregarTurmas();
             } catch(err) { alert(err.message); }
         });
@@ -159,6 +172,12 @@
                     throw new Error(dados.erro || 'Erro ao deletar.');
                 }
                 await carregarTurmas();
+                
+                // Se a turma deletada era a que estava selecionada, esconde a lista de alunos
+                if(document.getElementById('selectTurma').value === nome) {
+                    document.getElementById('selectTurma').value = "";
+                    document.getElementById('secaoListaAlunos').style.display = 'none';
+                }
             } catch(err) { alert(err.message); }
         }
 
@@ -177,7 +196,7 @@
                 corpo.innerHTML = '';
 
                 if (alunos.length === 0) {
-                    corpo.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#7f8c8d;">Nenhum aluno ativo.</td></tr>`;
+                    corpo.innerHTML = `<tr><td colspan="2" style="text-align:center; color:#7f8c8d; padding: 15px;">Nenhum aluno ativo nesta turma.</td></tr>`;
                 } else {
                     alunos.forEach(aluno => {
                         const tr = document.createElement('tr');
@@ -185,14 +204,14 @@
                             <td>
                                 <strong>${aluno.nome}</strong>
                                 <div id="area-transf-${aluno._id}" style="display:none;" class="linha-transferencia">
-                                    <select id="select-transf-${aluno._id}"></select>
-                                    <button onclick="confirmarTransferencia('${aluno._id}')" style="background:var(--success-color); color:white; border:none; padding:2px 8px; border-radius:3px; cursor:pointer;">Ok</button>
-                                    <button onclick="cancelarTransferencia('${aluno._id}')" style="background:#7f8c8d; color:white; border:none; padding:2px 8px; border-radius:3px; cursor:pointer;">X</button>
+                                    <select id="select-transf-${aluno._id}" style="padding: 2px; text-transform: uppercase;"></select>
+                                    <button onclick="confirmarTransferencia('${aluno._id}')" style="background:var(--success-color); color:white; border:none; padding:4px 10px; border-radius:3px; cursor:pointer; font-weight:bold;">Mudar</button>
+                                    <button onclick="cancelarTransferencia('${aluno._id}')" style="background:#7f8c8d; color:white; border:none; padding:4px 10px; border-radius:3px; cursor:pointer;">X</button>
                                 </div>
                             </td>
-                            <td style="text-align: right; vertical-align:top;">
-                                <button onclick="mostrarBarraTransferir('${aluno._id}')" style="background-color: #3498db; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor:pointer;">Transferir</button>
-                                <button onclick="desativarAluno('${aluno._id}', '${aluno.nome}')" style="background-color: var(--danger-color); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor:pointer;">Remover</button>
+                            <td style="text-align: right; vertical-align:top; white-space: nowrap;">
+                                <button class="btn-acao" onclick="mostrarBarraTransferir('${aluno._id}')" style="background-color: #3498db; color: white;">Transferir</button>
+                                <button class="btn-acao" onclick="desativarAluno('${aluno._id}', '${aluno.nome}')" style="background-color: var(--danger-color); color: white;">Remover</button>
                             </td>
                         `;
                         corpo.appendChild(tr);
@@ -205,16 +224,19 @@
         // ➕ CADASTRAR ALUNO
         document.getElementById('cadastroAlunoForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const nome = document.getElementById('nomeAluno').value;
+            const nomeInput = document.getElementById('nomeAluno');
+            const nome = nomeInput.value.trim();
             const turma = document.getElementById('selectTurma').value;
+            
             try {
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/alunos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
                     body: JSON.stringify({ nome, turma })
                 });
-                if (!res.ok) throw new Error('Erro ao cadastrar.');
-                document.getElementById('nomeAluno').value = '';
+                if (!res.ok) throw new Error('Erro ao cadastrar aluno.');
+                
+                nomeInput.value = '';
                 listarAlunosDaTurma(turma);
             } catch (error) { alert(error.message); }
         });
@@ -256,15 +278,15 @@
                 if (!res.ok) throw new Error("Erro ao atualizar dados no servidor.");
                 alert(mensagemSucesso);
                 
-                // Recarrega a tabela ou esconde se o aluno mudou de turma/foi deletado
-                if(dados.ativo === false || dados.turma) {
-                    listarAlunosDaTurma(turmaAtual);
-                }
+                // Força o recarregamento da tabela de alunos filtrada pela turma
+                listarAlunosDaTurma(turmaAtual);
             } catch (error) { alert(error.message); }
         }
 
-        // Inicialização automática
-        carregarTurmas();
+        // Inicialização protegida pós-renderização do DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarTurmas();
+        });
     </script>
 </body>
 </html>
