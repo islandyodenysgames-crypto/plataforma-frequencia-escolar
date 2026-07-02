@@ -28,16 +28,22 @@
             border: 1px solid #00000015;
         }
 
-        /* 📅 Alerta de Data Selecionada no Topo da Tabela */
+        /* 📅 DESTAQUE TOTAL DA DATA ATIVA (CORRIGIDO) */
         .banner-data-destaque {
-            background-color: #f8fafc;
-            border-left: 5px solid #3b82f6;
-            padding: 12px 16px;
-            margin-bottom: 20px;
-            border-radius: 4px 8px 8px 4px;
-            font-size: 1.15rem;
-            color: #1e293b;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+            background-color: #fff3cd; /* Amarelo Alerta Intenso */
+            border: 2px solid #ffc107;
+            border-left: 8px solid #ff9800; /* Borda Laranja Grossa */
+            padding: 16px;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            border-radius: 6px;
+            font-size: 1.25rem;
+            color: #b7791f;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
 
         /* 🗂️ Painel de Histórico Organizado e Espaçoso */
@@ -377,6 +383,11 @@
 
             dataSelecionada = dataSelecionada.substring(0, 10);
 
+            // Garante a exibição imediata da data antes mesmo do término da requisição HTTP
+            const partesData = dataSelecionada.split('-');
+            const dataBr = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+            document.getElementById('badgeDataAtiva').innerHTML = `⚠️ Alterando chamadas do dia: <span style="color: #c43e00; font-size: 1.4rem; font-weight: 900; text-decoration: underline;">${dataBr}</span>`;
+
             try {
                 const respostaLista = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     method: 'GET',
@@ -403,16 +414,10 @@
             const corpoTabela = document.getElementById('listaAlunosCorpo');
             const feedback = document.getElementById('msgFeedback');
             const tituloChamada = document.getElementById('tituloChamada');
-            const badgeData = document.getElementById('badgeDataAtiva');
             const turma = document.getElementById('selectTurma').value;
             
             corpoTabela.innerHTML = '';
             feedback.textContent = ''; 
-
-            // Formata a data ISO (AAAA-MM-DD) para formato brasileiro (DD/MM/AAAA) no cabeçalho
-            const partesData = dataAtivaIso.split('-');
-            const dataBr = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
-            badgeData.innerHTML = `📅 Exibindo lista referente ao dia: <strong style="color: #1e3a8a; font-size: 1.2rem;">${dataBr}</strong>`;
 
             if (alunosCarregados.length === 0) {
                 tituloChamada.innerHTML = `Lista de Alunos - ${turma}`;
