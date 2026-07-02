@@ -101,17 +101,29 @@
             if (!turma) return alert('Por favor, selecione a turma.');
             if (!anoMes) return alert('Por favor, selecione o mês de referência.');
 
+            const btn = document.getElementById('btnBuscar');
             try {
+                btn.textContent = 'Processando...';
+                btn.disabled = true;
+
                 const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/relatorio/${encodeURIComponent(turma)}/${anoMes}`, {
                     headers: { 'x-auth-token': token }
                 });
 
-                if (!res.ok) throw new Error();
                 const dados = await res.json();
+                
+                btn.textContent = 'Gerar Relatório Analítico';
+                btn.disabled = false;
+
+                if (!res.ok) {
+                    throw new Error(dados.erro || dados.detalhes || 'Erro desconhecido no servidor.');
+                }
 
                 renderizarTabelaRelatorio(dados);
             } catch (err) {
-                alert('Erro ao processar relatório no servidor.');
+                btn.textContent = 'Gerar Relatório Analítico';
+                btn.disabled = false;
+                alert(`Erro ao processar relatório: ${err.message}`);
             }
         }
 
@@ -154,7 +166,7 @@
                     <td style="text-align:center; color:${corFrequencia}; font-weight:${pesoFonte}; font-size:1.05rem;">
                         ${item.percentualPresenca}%
                     </td>
-                    <td style="font-size:0.9rem; color:#475569;">${resumoMotivos}</td>
+                    <td style="font-size:0.9rem; color:#475569;">${resSummary = resumoMotivos}</td>
                 `;
                 corpo.appendChild(tr);
             });
