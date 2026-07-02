@@ -9,10 +9,10 @@
         /* 🏷️ Indicadores de status da chamada */
         .status-badge {
             display: inline-block;
-            padding: 0.3rem 0.6rem;
-            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.9rem;
             font-weight: bold;
-            border-radius: 4px;
+            border-radius: 6px;
             margin-left: 12px;
             vertical-align: middle;
             letter-spacing: 0.5px;
@@ -28,82 +28,85 @@
             border: 1px solid #00000015;
         }
 
-        /* 🗂️ Painel de Histórico Organizado por Mês */
+        /* 🗂️ Painel de Histórico Organizado e Espaçoso */
         .painel-historico {
             background: #ffffff;
-            border-radius: 8px;
-            padding: 1.2rem;
-            margin-top: 15px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             border: 1px solid #e2e8f0;
         }
         .titulo-historico {
-            font-size: 1rem;
-            color: #2c3e50;
+            font-size: 1.15rem;
+            color: #1e293b;
             margin-top: 0;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
             font-weight: bold;
+            letter-spacing: 0.3px;
         }
         
         .container-scroll-historico {
-            max-height: 280px;
+            max-height: 320px;
             overflow-y: auto;
-            padding-right: 5px;
+            padding-right: 8px;
         }
 
-        /* Separadores visuais dos meses */
+        /* 🔥 Separadores dos Meses Ampliados e Legíveis */
         .grupo-mes-container {
-            margin-bottom: 18px;
+            margin-bottom: 22px;
         }
         .nome-mes-titulo {
-            font-size: 1.1rem;
-            color: #1e3a8a;
-            font-weight: bold;
+            font-size: 1.25rem; /* Letras significativamente maiores */
+            color: #1e3a8a; /* Azul escuro destacado */
+            font-weight: 800;
             text-transform: uppercase;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 4px;
-            margin-top: 10px;
-            margin-bottom: 8px;
+            border-bottom: 3px solid #3b82f6; /* Linha azul mais visível */
+            padding-bottom: 6px;
+            margin-top: 15px;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
         }
 
         .lista-historico-links {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 10px; /* Mais espaço entre os botões */
         }
         
+        /* Botões de registros maiores e mais fáceis de ler */
         .item-historico-btn {
             background: #f8fafc;
             color: #334155;
-            border: 1px solid #e2e8f0;
-            padding: 10px 14px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 600;
+            border: 1px solid #cbd5e1;
+            padding: 12px 16px; /* Aumento do clique e respiro do texto */
+            border-radius: 8px;
+            font-size: 1rem; /* Letra maior para a data */
+            font-weight: 700;
             cursor: pointer;
             text-align: left;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            transition: all 0.2s ease;
+            transition: all 0.2s ease-in-out;
         }
         .item-historico-btn::before {
-            content: "📅  Chamada realizada: ";
-            font-weight: normal;
+            content: "📅  Chamada realizada em: ";
+            font-weight: 500;
             color: #64748b;
-            font-size: 0.85rem;
+            font-size: 0.95rem; /* Legenda interna maior */
         }
         .item-historico-btn:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-            color: #2563eb;
-            transform: translateX(2px);
+            background: #eff6ff;
+            border-color: #3b82f6;
+            color: #1d4ed8;
+            transform: translateX(4px);
         }
         .txt-vazio {
-            font-size: 0.85rem;
+            font-size: 1rem;
             color: #64748b;
             font-style: italic;
-            padding: 10px 0;
+            padding: 12px 0;
         }
     </style>
 </head>
@@ -200,7 +203,7 @@
             }
         }
 
-        // 📅 ATUALIZAR E AGRUPAR O PAINEL DE HISTÓRICO POR MÊS (Versão Segura)
+        // 📅 ATUALIZAR E AGRUPAR O PAINEL DE HISTÓRICO POR MÊS
         async function atualizarPainelDatasDaTurma(turma) {
             const container = document.getElementById('containerDatasConcluidas');
             if (!turma) {
@@ -224,7 +227,6 @@
                     return;
                 }
 
-                // Agrupando com segurança usando reduce
                 const gruposPorMes = datas.reduce((acc, dataRaw) => {
                     const dataIso = dataRaw.substring(0, 10);
                     const partes = dataIso.split('-');
@@ -240,7 +242,6 @@
                     return acc;
                 }, {});
 
-                // Renderização limpa
                 Object.keys(gruposPorMes).forEach(chaveMes => {
                     const grupoDiv = document.createElement('div');
                     grupoDiv.className = 'grupo-mes-container';
@@ -279,7 +280,7 @@
             }
         }
 
-        // 🔄 BUSCAR ALUNOS DA TURMA E CONFERIR SE JÁ EXISTE CHAMADA
+        // 🔄 BUSCAR ALUNOS DA TURMA E CONFERIR SE JÁ EXISTE CHAMADA (Corrigido)
         async function carregarAlunos() {
             const turma = document.getElementById('selectTurma').value;
             let dataSelecionada = document.getElementById('inputData').value;
@@ -290,12 +291,13 @@
             dataSelecionada = dataSelecionada.substring(0, 10);
 
             try {
-                const respostaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
+                // 🔥 CORRIGIDO: Nome da variável alterado de "respostaAlunos" para "respostaLista" para evitar conflito de nomenclatura
+                const respostaLista = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
-                if (!respostaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
-                alunosCarregados = await respostaAlunos.json();
+                if (!respostaLista.ok) throw new Error('Erro ao buscar lista de alunos.');
+                alunosCarregados = await respostaLista.json();
 
                 const respostaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
                     method: 'GET',
