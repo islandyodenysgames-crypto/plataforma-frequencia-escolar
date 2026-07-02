@@ -17,7 +17,18 @@
         .col-lateral { flex: 1; min-width: 250px; }
         .linha-transferencia { background: #f1f2f6; padding: 0.5rem; border-radius: 4px; display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; color: #1e293b; }
         .lista-turmas-remover { margin-top: 1rem; list-style: none; padding: 0; }
-        .lista-turmas-remover li { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+        
+        /* Modificado para comportar os inputs de imagem de forma elegante */
+        .lista-turmas-remover li { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-start; 
+            background: #f8fafc; 
+            padding: 12px; 
+            margin-bottom: 12px; 
+            border-radius: 6px; 
+            border: 1px solid #e2e8f0; 
+        }
         
         /* Ajuste visual para os botões de ação na tabela */
         .btn-acao { border: none; padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: pointer; margin-left: 5px; }
@@ -95,7 +106,7 @@
 
         let todasAsTurmas = [];
 
-        // 🔄 CARREGAR TODAS AS TURMAS DO BANCO
+        // 🔄 CARREGAR TODAS AS TURMAS DO BANCO (ATUALIZADA COM SUPORTE À FOTO)
         async function carregarTurmas() {
             try {
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
@@ -123,18 +134,46 @@
                         select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
                         listaRemover.innerHTML += `
                             <li>
-                                <span><strong>${t.nome}</strong></span>
-                                <button onclick="removerTurma('${t._id}', '${t.nome}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer; padding: 5px;">Deletar</button>
-                            </td>
+                                <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                                    <span><strong>${t.nome}</strong></span>
+                                    <button onclick="removerTurma('${t._id}', '${t.nome}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer; padding: 5px;">Deletar</button>
+                                </div>
+                                <div style="display:flex; width:100%; gap:6px; margin-top:10px;">
+                                    <input type="text" id="input-foto-${t._id}" value="${t.fotoUrl || ''}" placeholder="Link da foto (URL)" style="flex:1; padding:6px; font-size:0.8rem; border:1px solid #cbd5e1; border-radius:4px;">
+                                    <button onclick="salvarFotoTurma('${t._id}')" style="background:#10b981; color:white; border:none; padding:6px 10px; font-size:0.8rem; border-radius:4px; font-weight:bold; cursor:pointer;">Salvar</button>
+                                </div>
+                            </li>
                         `;
                     });
                 }
 
-                // Mantém selecionado o item anterior para não resetar a experiência visual do usuário
                 if(valorSelecionado) select.value = valorSelecionado;
             } catch (err) { 
                 console.error("Erro ao carregar turmas:", err);
                 alert("Erro ao sincronizar turmas: " + err.message);
+            }
+        }
+
+        // 📸 SALVAR/ATUALIZAR FOTO DA TURMA NO BANCO
+        async function salvarFotoTurma(id) {
+            const urlFoto = document.getElementById(`input-foto-${id}`).value.trim();
+            try {
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/turmas/foto/${id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token 
+                    },
+                    body: JSON.stringify({ fotoUrl: urlFoto })
+                });
+
+                const dados = await res.json();
+                if (!res.ok) throw new Error(dados.erro || 'Erro ao salvar foto.');
+                
+                alert("Foto da turma salva com sucesso! 📸");
+                await carregarTurmas();
+            } catch (err) {
+                alert(`Erro: ${err.message}`);
             }
         }
 
@@ -173,7 +212,6 @@
                 }
                 await carregarTurmas();
                 
-                // Se a turma deletada era a que estava selecionada, esconde a lista de alunos
                 if(document.getElementById('selectTurma').value === nome) {
                     document.getElementById('selectTurma').value = "";
                     document.getElementById('secaoListaAlunos').style.display = 'none';
@@ -278,7 +316,6 @@
                 if (!res.ok) throw new Error("Erro ao atualizar dados no servidor.");
                 alert(mensagemSucesso);
                 
-                // Força o recarregamento da tabela de alunos filtrada pela turma
                 listarAlunosDaTurma(turmaAtual);
             } catch (error) { alert(error.message); }
         }
