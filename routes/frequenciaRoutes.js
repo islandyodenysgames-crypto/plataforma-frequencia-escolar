@@ -36,6 +36,18 @@ router.post('/turmas', auth, async (req, res) => {
     }
 });
 
+// Atualizar foto da turma (Exige autenticação do professor)
+router.put('/turmas/foto/:id', auth, async (req, res) => {
+    try {
+        const { fotoUrl } = req.body;
+        const turma = await Turma.findByIdAndUpdate(req.params.id, { fotoUrl }, { new: true });
+        if (!turma) return res.status(404).json({ erro: 'Turma não encontrada.' });
+        res.json({ mensagem: 'Foto da turma atualizada com sucesso! 📸', turma });
+    } catch (error) {
+        res.status(500).json({ erro: error.message });
+    }
+});
+
 // Deletar turma
 router.delete('/turmas/:id', auth, async (req, res) => {
     try {
@@ -226,7 +238,7 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
     }
 });
 
-// 🏆 GERAR RANKING DIÁRIO DE FREQUÊNCIA DAS TURMAS (ROTA PÚBLICA - SEM EXIGIR TOKEN)
+// 🏆 GERAR RANKING DIÁRIO DE FREQUÊNCIA DAS TURMAS (ROTA PÚBLICA - COM SUPORTE À URL DA FOTO)
 router.get('/ranking-diario/:data', async (req, res) => {
     try {
         const { data } = req.params; // Formato: "AAAA-MM-DD"
@@ -262,7 +274,8 @@ router.get('/ranking-diario/:data', async (req, res) => {
                 turma: turma.nome,
                 totalAlunos: totalAlunosTurma,
                 faltasDiretas: faltasPenalizadas,
-                aproveitamento: Math.max(0, indicePresenca)
+                aproveitamento: Math.max(0, indicePresenca),
+                fotoUrl: turma.fotoUrl || '' // 🔥 Fornecendo a foto salva para compor o destaque na TV
             };
         });
 
