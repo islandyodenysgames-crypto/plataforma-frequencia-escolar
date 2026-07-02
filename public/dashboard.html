@@ -28,7 +28,7 @@
             border: 1px solid #00000015;
         }
 
-        /* 📅 DESTAQUE TOTAL DA DATA ATIVA (CORRIGIDO) */
+        /* 📅 DESTAQUE TOTAL DA DATA ATIVA */
         .banner-data-destaque {
             background-color: #fff3cd; /* Amarelo Alerta Intenso */
             border: 2px solid #ffc107;
@@ -163,9 +163,10 @@
         <div class="header-content">
             <h2>Escola Carminha 🏫</h2>
             <div class="user-info">
-                <button onclick="window.location.href='cadastro.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s;">🎒 Cadastrar Alunos/Turmas</button>
+                <button onclick="window.location.href='biblioteca.html'" style="background: #6366f1; border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">📺 Central de Mídias (Telão)</button>
+                <button onclick="window.location.href='cadastro.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; margin-left:8px;">🎒 Cadastrar Alunos/Turmas</button>
                 <button onclick="window.location.href='relatorios.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; margin-left:8px;">📊 Relatórios Mensais</button>
-                <span>Olá, <strong id="nomeProfessor">Professor</strong></span>
+                <span style="margin-left: 12px;">Olá, <strong id="nomeProfessor">Professor</strong></span>
                 <button id="btnSair" onclick="logout()">Sair</button>
             </div>
         </div>
