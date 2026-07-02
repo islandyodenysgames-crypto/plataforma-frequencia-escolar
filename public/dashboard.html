@@ -28,7 +28,7 @@
             border: 1px solid #00000015;
         }
 
-        /* 🗂️ Painel de Histórico Organizador */
+        /* 🗂️ Painel de Histórico Organizado em Coluna */
         .painel-historico {
             background: #ffffff;
             border-radius: 8px;
@@ -41,41 +41,53 @@
             font-size: 1rem;
             color: #2c3e50;
             margin-top: 0;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            margin-bottom: 12px;
+            font-weight: bold;
         }
+        
+        /* 🔥 Força a lista a ficar em formato de coluna vertical estruturada */
         .lista-historico-links {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-            gap: 8px;
-            max-height: 150px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 220px;
             overflow-y: auto;
             padding-right: 5px;
         }
+        
+        /* Botões em formato de linha de tabela para clique fácil */
         .item-historico-btn {
-            background: #f1f5f9;
+            background: #f8fafc;
             color: #334155;
-            border: 1px solid #cbd5e1;
-            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
+            padding: 10px 14px;
             border-radius: 6px;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
-            text-align: center;
-            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .item-historico-btn::before {
+            content: "📅  Chamada salva em: ";
+            font-weight: normal;
+            color: #64748b;
+            font-size: 0.85rem;
         }
         .item-historico-btn:hover {
-            background: #e2e8f0;
-            border-color: #94a3b8;
-            color: #0f172a;
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #2563eb;
+            transform: translateX(2px);
         }
         .txt-vazio {
             font-size: 0.85rem;
             color: #64748b;
             font-style: italic;
-            grid-column: 1 / -1;
+            padding: 10px 0;
         }
     </style>
 </head>
@@ -108,7 +120,7 @@
             <button onclick="carregarAlunos()" id="btnBuscar">Buscar Lista</button>
             
             <div class="painel-historico">
-                <h4 class="titulo-historico">📅 Chamadas já Realizadas nesta Turma:</h4>
+                <h4 class="titulo-historico">Histórico de Chamadas Realizadas:</h4>
                 <div id="containerDatasConcluidas" class="lista-historico-links">
                     <span class="txt-vazio">Selecione uma turma para carregar o histórico de chamadas.</span>
                 </div>
@@ -167,7 +179,7 @@
             }
         }
 
-        // 📅 ATUALIZAR O PAINEL DE HISTÓRICO COM AS REQUISIÇÕES JÁ TRATADAS
+        // 📅 ATUALIZAR O PAINEL DE HISTÓRICO COM FORMATO CORRIGIDO
         async function atualizarPainelDatasDaTurma(turma) {
             const container = document.getElementById('containerDatasConcluidas');
             if (!turma) {
@@ -191,15 +203,20 @@
                     return;
                 }
 
-                datas.forEach(dataIso => {
-                    // Formata a exibição visual para DD/MM/AAAA
+                datas.forEach(dataRaw => {
+                    // 🔥 CORREÇÃO CRÍTICA DA DATA: Isola rigorosamente os primeiros 10 caracteres (AAAA-MM-DD)
+                    // Isso elimina completamente o "T00:00:00.000Z" antes de montar a exibição do botão
+                    const dataIso = dataRaw.substring(0, 10); 
+                    
                     const partes = dataIso.split('-');
-                    const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+                    if (partes.length !== 3) return; // Ignora se o formato estiver corrompido
+                    
+                    const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`; // Monta DD/MM/AAAA
 
                     const btnData = document.createElement('button');
                     btnData.className = 'item-historico-btn';
                     btnData.type = 'button';
-                    btnData.textContent = dataFormatada;
+                    btnData.innerHTML = `<span><strong>${dataFormatada}</strong></span> <span>➔</span>`;
                     
                     btnData.onclick = () => {
                         document.getElementById('inputData').value = dataIso;
@@ -217,23 +234,23 @@
         // 🔄 BUSCAR ALUNOS DA TURMA E CONFERIR SE JÁ EXISTE CHAMADA
         async function carregarAlunos() {
             const turma = document.getElementById('selectTurma').value;
-            const dataSelecionada = document.getElementById('inputData').value;
+            let dataSelecionada = document.getElementById('inputData').value;
             
             if (!turma) return alert('Por favor, selecione uma turma!');
             if (!dataSelecionada) return alert('Por favor, selecione uma data!');
 
-            try {
-                // Garante que o painel lateral esteja atualizado caso a chamada tenha sido engatada direto
-                atualizarPainelDatasDaTurma(turma);
+            // Normaliza para garantir o envio correto da data limpa para o histórico
+            dataSelecionada = dataSelecionada.substring(0, 10);
 
-                const respostaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
+            try {
+                const respuestaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
-                if (!respostaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
-                alunosCarregados = await respostaAlunos.json();
+                if (!respuestaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
+                alunosCarregados = await respuestaAlunos.json();
 
-                const respostaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
+                const respuestaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
@@ -267,7 +284,7 @@
             
             if (chamadaJaFeita) {
                 tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-salvo">✓ CHAMADA CONCLUÍDA</span>`;
-                feedback.textContent = 'ℹ| Exibindo chamada já realizada nesta data. Modificações feitas abaixo sobrescreverão o registro antigo ao salvar.';
+                feedback.textContent = 'ℹ️ Exibindo chamada já realizada nesta data. Modificações feitas abaixo sobrescreverão o registro antigo ao salvar.';
                 feedback.className = 'info-msg';
             } else {
                 tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-pendente">⚠️ CHAMADA PENDENTE</span>`;
@@ -338,9 +355,11 @@
 
         // 🚀 ENVIAR CHAMADA COMPLETA PRO BANCO
         async function enviarChamada() {
-            const dataChamada = document.getElementById('inputData').value;
+            let dataChamada = document.getElementById('inputData').value;
             const turma = document.getElementById('selectTurma').value;
             const feedback = document.getElementById('msgFeedback');
+
+            dataChamada = dataChamada.substring(0, 10);
 
             const listaFrequencia = alunosCarregados.map(aluno => ({
                 aluno_id: aluno._id,
