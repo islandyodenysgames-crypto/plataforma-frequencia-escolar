@@ -7,39 +7,69 @@
         body { background: #0f172a; color: white; margin: 0; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
         
         /* Container Base */
-        .instagram-tv-wrapper { width: 960px; height: 960px; display: flex; justify-content: center; align-items: center; }
-        .instagram-tv-wrapper iframe { width: 100%; height: 100%; border: none; border-radius: 12px; clip-path: inset(45px 0px 20px 0px); transform: scale(1.15); }
+        .instagram-tv-wrapper { width: 960px; height: 960px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
         
-        /* Ajuste Horizontal */
+        /* Clip-path ajustado: diminuí o valor inferior (20px) para exibir o rodapé */
+        .instagram-tv-wrapper iframe { 
+            width: 100%; 
+            height: 100%; 
+            border: none; 
+            border-radius: 12px; 
+            clip-path: inset(45px 0px 0px 0px); 
+            transform: scale(1.15); 
+        }
+        
+        /* Ajuste Horizontal (16:9) */
         .instagram-tv-wrapper.horizontal { width: 1280px; height: 720px; }
         .instagram-tv-wrapper.horizontal iframe { clip-path: none; transform: scale(1.0); }
     </style>
 </head>
 <body>
-    <div id="wrapperMidiaDinamica"></div>
+    <div id="wrapperMidiaDinamica">Carregando...</div>
 
     <script>
-        async function carregarPlaylist() {
-            const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist');
-            const playlist = await res.json();
-            exibirMidia(playlist[0]);
+        let playlist = [];
+        let indice = 0;
+
+        async function atualizarPlaylist() {
+            try {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist');
+                playlist = await res.json();
+                if (playlist.length > 0 && indice >= playlist.length) indice = 0;
+            } catch (e) { console.error("Erro ao buscar playlist", e); }
         }
 
-        function exibirMidia(midia) {
+        function rodarSlides() {
+            if (playlist.length === 0) {
+                setTimeout(rodarSlides, 5000);
+                return;
+            }
+
+            const midia = playlist[indice];
             const wrapper = document.getElementById('wrapperMidiaDinamica');
             const ehHorizontal = midia.orientacao === 'horizontal';
             
+            // Renderiza o conteúdo
             if (midia.tipo === 'instagram') {
                 wrapper.innerHTML = `
                     <div class="instagram-tv-wrapper ${ehHorizontal ? 'horizontal' : ''}">
                         <iframe src="${midia.url}" scrolling="no"></iframe>
                     </div>
                 `;
-            } else if (midia.tipo === 'video') {
+            } else {
                 wrapper.innerHTML = `<iframe src="${midia.url}" style="width: 1280px; height: 720px; border:none;"></iframe>`;
             }
+
+            // Define o tempo e passa para o próximo
+            const tempo = (midia.tempoExibicao || 15) * 1000;
+            indice = (indice + 1) % playlist.length;
+            
+            setTimeout(rodarSlides, tempo);
         }
-        carregarPlaylist();
+
+        // Inicialização
+        setInterval(atualizarPlaylist, 60000); // Atualiza lista a cada minuto
+        atualizarPlaylist().then(rodarSlides);
     </script>
 </body>
 </html>
