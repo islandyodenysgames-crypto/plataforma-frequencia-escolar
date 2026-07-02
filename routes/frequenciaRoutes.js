@@ -36,7 +36,7 @@ router.post('/turmas', auth, async (req, res) => {
     }
 });
 
-// Atualizar foto da turma (Exige autenticação do professor)
+// Aktualizar foto da turma (Exige autenticação do professor)
 router.put('/turmas/foto/:id', auth, async (req, res) => {
     try {
         const { fotoUrl } = req.body;
@@ -120,7 +120,7 @@ router.post('/lancar', auth, async (req, res) => {
         });
 
         await Promise.all(promessas);
-        res.json({ mensagem: '✅ Chamada salva e atualizada com sucesso no banco!' });
+        res.json({ message: '✅ Chamada salva e atualizada com sucesso no banco!' });
     } catch (error) {
         res.status(500).json({ erro: error.message });
     }
@@ -239,31 +239,26 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🏆🏆 RANKING DIÁRIO CORRIGIDO PARA TV E DASHBOARD 🏆🏆
+// 🏆🏆 RANKING DIÁRIO RETIFICADO (TV + DASHBOARD) 🏆🏆
 // ==========================================
 router.get('/ranking-diario/:data', async (req, res) => {
     try {
-        const { data } = req.params; // Formato esperado: "YYYY-MM-DD"
+        const { data } = req.params;
 
         const turmas = await Turma.find().sort({ nome: 1 });
         const registrosDia = await Frequencia.find({ data });
 
-        // 🔥 CORREÇÃO PARA O DASHBOARD: Se o dia não tiver NENHUMA chamada feita ainda, 
-        // retorna array vazio para o dashboard exibir o estado correto sem dar erro.
-        if (registrosDia.length === 0) {
-            return res.json([]);
-        }
-
+        // 🔥 CRITICAL FIX: Se o dia ainda não tiver NENHUMA chamada feita no banco de dados,
+        // não retornamos mais o array vazio []. Em vez disso, montamos a lista inicial com 0% 
+        // para manter as fotos ativas e impedir o front-end do Dashboard de colapsar no catch.
         const promessasRanking = turmas.map(async (turma) => {
             const totalAlunosTurma = await Aluno.countDocuments({ turma: turma.nome, ativo: true });
             
-            // Se a turma existir mas não tiver nenhum aluno cadastrado nela, pula
             if (totalAlunosTurma === 0) return null;
 
             const chamadasDaTurma = registrosDia.filter(r => r.turma === turma.nome);
 
-            // 🔥 CORREÇÃO PARA A TV: Se o dia já começou mas ESSA turma está sem chamada,
-            // ela vai para o final da fila com 0% em vez de sumir do mapa.
+            // Caso não haja chamada feita para esta turma específica (ou para nenhuma no dia)
             if (chamadasDaTurma.length === 0) {
                 return {
                     turma: turma.nome,
@@ -272,12 +267,12 @@ router.get('/ranking-diario/:data', async (req, res) => {
                     totalFaltas: 0,
                     faltasJustificadas: 0,
                     aproveitamento: 0,
-                    porcentagem: 0, // Garante compatibilidade retroativa com variáveis antigas
-                    fotoUrl: turma.fotoUrl || ''
+                    porcentagem: 0, 
+                    fotoUrl: turma.fotoUrl || '' // Envia a foto mesmo com o dia zerado
                 };
             }
 
-            // Caso existam chamadas, calcula as faltas diretas (penalizadas)
+            // Caso existam chamadas, computa as penalidades por faltas diretas
             const faltasPenalizadas = chamadasDaTurma.filter(r => {
                 if (r.houve_falta === true) {
                     const motivo = r.motivo_falta ? r.motivo_falta.toString().toUpperCase() : 'DIRETA';
@@ -286,7 +281,6 @@ router.get('/ranking-diario/:data', async (req, res) => {
                 return false;
             }).length;
 
-            // Coleta dados gerais de faltas para alimentar as tabelas detalhadas
             const totalFaltasGerais = chamadasDaTurma.filter(r => r.houve_falta === true).length;
             const faltasJustificadas = chamadasDaTurma.filter(
                 r => r.houve_falta === true && r.motivo_falta !== 'DIRETA' && r.motivo_falta !== 'NENHUM'
@@ -303,13 +297,12 @@ router.get('/ranking-diario/:data', async (req, res) => {
                 faltasJustificadas: faltasJustificadas,
                 aproveitamento: Math.max(0, indicePresenca),
                 porcentagem: Math.max(0, indicePresenca),
-                fotoUrl: turma.fotoUrl || '' // Mantém o envio da foto do banco para os destaques
+                fotoUrl: turma.fotoUrl || ''
             };
         });
 
         const resultadoBruto = await Promise.all(promessasRanking);
         
-        // Remove itens nulos e ordena do maior aproveitamento para o menor
         const rankingOrdenado = resultadoBruto
             .filter(item => item !== null)
             .sort((a, b) => b.aproveitamento - a.aproveitamento);
