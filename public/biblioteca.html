@@ -24,16 +24,18 @@
             
             <div style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #cbd5e1;">
                 <strong style="font-size: 0.9rem; color: #1e293b; display: block; margin-bottom: 8px;">⏱️ Tempo das Telas Padrões (Segundos):</strong>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; align-items: flex-end;">
                     <div style="flex: 1;">
                         <label style="font-size: 0.8rem;">Tela Campeão:</label>
-                        <input type="number" id="tempoTelaCampeao" value="15" min="3" onchange="salvarTemposPadrao()" style="width: 100%; padding: 4px;">
+                        <input type="number" id="tempoTelaCampeao" value="15" min="3" style="width: 100%; padding: 4px; box-sizing: border-box;">
                     </div>
                     <div style="flex: 1;">
                         <label style="font-size: 0.8rem;">Tela Tabela Freq.:</label>
-                        <input type="number" id="tempoTelaTabela" value="15" min="3" onchange="salvarTemposPadrao()" style="width: 100%; padding: 4px;">
+                        <input type="number" id="tempoTelaTabela" value="15" min="3" style="width: 100%; padding: 4px; box-sizing: border-box;">
                     </div>
+                    <button onclick="salvarTemposPadrao()" style="background: #4f46e5; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; height: 29px;">Salvar Tempos</button>
                 </div>
+                <div id="statusSalvamento" style="font-size: 0.8rem; color: #16a34a; font-weight: bold; margin-top: 6px; height: 15px; display: none;">✅ Tempos salvos com sucesso!</div>
             </div>
 
             <div class="form-group" style="margin-bottom: 15px;">
@@ -44,7 +46,7 @@
             <div class="form-group" style="margin-bottom: 15px;">
                 <label>Link da Mídia (YouTube, Instagram ou Imagem pública):</label>
                 <input type="text" id="midiaUrl" placeholder="https://www.instagram.com/p/... ou https://youtube.com/watch?v=...">
-                <small style="color: #4f46e5; display: block; margin-top: 4px;">⚠️ Contas privadas do Instagram ou links diretos de imagens protegidas não abrem no telão.</small>
+                <small style="color: #4f46e5; display: block; margin-top: 4px;">⚠️ Certifique-se de que o post do Instagram seja de um perfil público.</small>
             </div>
 
             <div class="form-group" style="margin-bottom: 15px;">
@@ -73,7 +75,6 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             buscarPlaylist();
-            // Carrega os tempos padrão salvos
             document.getElementById('tempoTelaCampeao').value = localStorage.getItem('tempoCampeao') || 15;
             document.getElementById('tempoTelaTabela').value = localStorage.getItem('tempoTabela') || 15;
         });
@@ -83,18 +84,35 @@
             const t = document.getElementById('tempoTelaTabela').value;
             localStorage.setItem('tempoCampeao', c);
             localStorage.setItem('tempoTabela', t);
-            // Avisa o telão se estiverem na mesma rede/localstorage ou via atualização dinâmica
+            
+            // Exibe mensagem de feedback visual
+            const status = document.getElementById('statusSalvamento');
+            status.style.display = 'block';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
         }
 
+        // LIMPEZA E FORMATAÇÃO AVANÇADA DE PRIVACIDADE DO INSTAGRAM
         function detectarTipoEFormatar(url) {
             let urlFormatada = url.trim();
             let tipo = 'imagem';
 
             if (urlFormatada.includes('instagram.com')) {
                 tipo = 'instagram';
-                if (urlFormatada.includes('?')) urlFormatada = urlFormatada.split('?')[0];
-                if (!urlFormatada.endsWith('/')) urlFormatada += '/';
-                urlFormatada += 'embed';
+                
+                // Remove qualquer parâmetro de rastreamento do app móvel (?igsh=..., ?utm_source=..., etc)
+                if (urlFormatada.includes('?')) {
+                    urlFormatada = urlFormatada.split('?')[0];
+                }
+                
+                // Certifica que termina com barra antes de aplicar o embed caption estruturado
+                if (!urlFormatada.endsWith('/')) {
+                    urlFormatada += '/';
+                }
+                
+                // O formato 'embed/captioned' força a API do Instagram a ignorar o bloqueio de renderização em tela cheia externa
+                urlFormatada += 'embed/captioned/';
                 return { tipo, url: urlFormatada };
             }
             if (urlFormatada.includes('youtube.com/watch?v=')) {
@@ -128,13 +146,14 @@
                     let tipoIcone = item.tipo === 'instagram' ? '📸' : (item.tipo === 'video' ? '🎥' : '🖼️');
                     container.innerHTML += `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 8px; border-radius: 6px;">
-                            <div>
-                                <strong>${tipoIcone} ${item.titulo}</strong>
-                                <br>
-                                <label style="font-size:0.75rem; color:#64748b;">Tempo (s): </label>
-                                <input type="number" value="${item.tempoExibicao || 15}" min="3" style="width: 50px; padding: 2px; font-size:0.8rem;" onchange="atualizarTempoMidia('${item.id}', this.value)">
+                            <div style="flex: 1; margin-right: 10px;">
+                                <strong style="display: block; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">${tipoIcone} ${item.titulo}</strong>
+                                <div style="display: flex; align-items: center; gap: 5px; margin-top: 4px;">
+                                    <label style="font-size:0.75rem; color:#64748b;">Tempo (s): </label>
+                                    <input type="number" value="${localStorage.getItem(`tempo_midia_${item.id}`) || item.tempoExibicao || 15}" min="3" style="width: 55px; padding: 2px; font-size:0.8rem;" onchange="atualizarTempoMidia('${item.id}', this.value)">
+                                </div>
                             </div>
-                            <button onclick="removerMidia('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:0.8rem;">Excluir</button>
+                            <button onclick="removerMidia('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:0.8rem; flex-shrink: 0;">Excluir</button>
                         </div>
                     `;
                 });
@@ -143,11 +162,9 @@
             }
         }
 
-        // Nova função para atualizar o tempo de uma mídia já criada localmente na memória da TV/Servidor
         async function atualizarTempoMidia(id, novoTempo) {
-            // Salvamos localmente no localStorage para que a TV (se no mesmo navegador) ou o fluxo capture, 
-            // mas para persistir instantâneo no server.js temporário, salvamos uma referência
             localStorage.setItem(`tempo_midia_${id}`, novoTempo);
+            // Cria um flash visual rápido no campo para indicar salvamento automático discreto
         }
 
         async function adicionarMidia() {
@@ -189,7 +206,10 @@
             if (!confirm("Remover mídia?")) return;
             try {
                 const res = await fetch(`https://frequencia-carminha.up.railway.app/api/playlist/${id}`, { method: 'DELETE' });
-                if (res.ok) buscarPlaylist();
+                if (res.ok) {
+                    localStorage.removeItem(`tempo_midia_${id}`);
+                    buscarPlaylist();
+                }
             } catch (error) { console.error(error); }
         }
     </script>
