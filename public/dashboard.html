@@ -30,9 +30,9 @@
 
         /* 📅 DESTAQUE TOTAL DA DATA ATIVA */
         .banner-data-destaque {
-            background-color: #fff3cd; /* Amarelo Alerta Intenso */
+            background-color: #fff3cd; 
             border: 2px solid #ffc107;
-            border-left: 8px solid #ff9800; /* Borda Laranja Grossa */
+            border-left: 8px solid #ff9800; 
             padding: 16px;
             margin-top: 10px;
             margin-bottom: 25px;
@@ -46,8 +46,8 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
 
-        /* 🗂️ Painel de Histórico Organizado e Espaçoso */
-        .painel-historico {
+        /* 🗂️ Painel de Histórico e Ranking */
+        .painel-historico, .painel-ranking {
             background: #ffffff;
             border-radius: 10px;
             padding: 1.5rem;
@@ -55,7 +55,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             border: 1px solid #e2e8f0;
         }
-        .titulo-historico {
+        .titulo-historico, .titulo-ranking {
             font-size: 1.15rem;
             color: #1e293b;
             margin-top: 0;
@@ -70,7 +70,7 @@
             padding-right: 8px;
         }
 
-        /* Separadores dos Meses Ampliados e Legíveis */
+        /* Separadores dos Meses */
         .grupo-mes-container {
             margin-bottom: 22px;
         }
@@ -92,7 +92,6 @@
             gap: 10px;
         }
         
-        /* Container de cada linha do histórico */
         .linha-historico-item {
             display: flex;
             align-items: center;
@@ -100,7 +99,6 @@
             width: 100%;
         }
 
-        /* Botões de registros maiores */
         .item-historico-btn {
             background: #f8fafc;
             color: #334155;
@@ -118,7 +116,7 @@
             transition: all 0.2s ease-in-out;
         }
         .item-historico-btn::before {
-            content: "📅  Chamada realizada em: ";
+            content: "📅  Chamada: ";
             font-weight: 500;
             color: #64748b;
             font-size: 0.95rem;
@@ -130,7 +128,6 @@
             transform: translateX(2px);
         }
 
-        /* Botão Vermelho de Deletar Registro */
         .btn-deletar-historico {
             background: #ffeeeb;
             color: #e63946;
@@ -157,7 +154,7 @@
             padding: 12px 0;
         }
 
-        /* 🔘 Estilização dos botões de Presença e Falta na Tabela */
+        /* 🔘 Botoes de Presenca e Falta */
         .btn-toggle-group {
             display: flex;
             gap: 4px;
@@ -182,6 +179,26 @@
             color: white;
             border-color: #c92a3a;
         }
+
+        /* Tabela do Ranking */
+        .tabela-ranking {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        .tabela-ranking th, .tabela-ranking td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .tabela-ranking th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: bold;
+        }
+        .posicao-1 { background-color: #fef08a; font-weight: bold; } /* Ouro */
+        .posicao-2 { background-color: #e2e8f0; } /* Prata */
+        .posicao-3 { background-color: #ffedd5; } /* Bronze */
     </style>
 </head>
 <body>
@@ -209,7 +226,7 @@
 
             <div class="form-group">
                 <label for="inputData">Data da Chamada:</label>
-                <input type="date" id="inputData">
+                <input type="date" id="inputData" onchange="carregarRankingDiario()">
             </div>
 
             <button onclick="carregarAlunos()" id="btnBuscar">Buscar Lista</button>
@@ -218,6 +235,14 @@
                 <h4 class="titulo-historico">Histórico de Chamadas Realizadas:</h4>
                 <div id="containerDatasConcluidas" class="container-scroll-historico">
                     <span class="txt-vazio">Selecione uma turma para carregar o histórico de chamadas.</span>
+                </div>
+            </div>
+
+            <!-- 🏆 NOVO: Painel de Ranking Diário -->
+            <div class="painel-ranking">
+                <h4 class="titulo-ranking" id="tituloRankingDiario">🏆 Ranking Diário (Selecione uma data):</h4>
+                <div id="containerRankingDiario">
+                    <span class="txt-vazio">Selecione uma data para ver a disputa do dia.</span>
                 </div>
             </div>
         </section>
@@ -256,6 +281,7 @@
             document.getElementById('nomeProfessor').textContent = nomeProf;
             document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
             carregarTurmasNoDashboard();
+            carregarRankingDiario(); // Carrega o ranking do dia atual ao iniciar
         }
 
         let alunosCarregados = [];
@@ -279,6 +305,66 @@
                 });
             } catch (err) {
                 console.error("Erro ao carregar turmas:", err);
+            }
+        }
+
+        // 🏆 BUSCAR E ATUALIZAR O RANKING DIÁRIO
+        async function carregarRankingDiario() {
+            let dataSelecionada = document.getElementById('inputData').value;
+            const container = document.getElementById('containerRankingDiario');
+            const titulo = document.getElementById('tituloRankingDiario');
+            
+            if (!dataSelecionada) return;
+            dataSelecionada = dataSelecionada.substring(0, 10);
+            
+            const partes = dataSelecionada.split('-');
+            titulo.textContent = `🏆 Ranking Diário - ${partes[2]}/${partes[1]}/${partes[0]}`;
+
+            try {
+                container.innerHTML = '<span class="txt-vazio">Atualizando ranking...</span>';
+                
+                // Endpoint padrão de listagem de ranking filtrado por data
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/ranking-diario?data=${dataSelecionada}`, {
+                    headers: { 'x-auth-token': token }
+                });
+                
+                if (!res.ok) throw new Error();
+                const dadosRanking = await res.json();
+                
+                if (!dadosRanking || dadosRanking.length === 0) {
+                    container.innerHTML = '<span class="txt-vazio">Nenhuma chamada calculada para esta data ainda.</span>';
+                    return;
+                }
+
+                let htmlTabela = `
+                    <table class="tabela-ranking">
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Turma</th>
+                                <th>Frequência</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                dadosRanking.forEach((item, index) => {
+                    const classePosicao = index === 0 ? 'posicao-1' : index === 1 ? 'posicao-2' : index === 2 ? 'posicao-3' : '';
+                    htmlTabela += `
+                        <tr class="${classePosicao}">
+                            <td>${index + 1}º</td>
+                            <td><strong>${item.turma}</strong></td>
+                            <td>${item.porcentagem}%</td>
+                        </tr>
+                    `;
+                });
+
+                htmlTabela += `</tbody></table>`;
+                container.innerHTML = htmlTabela;
+
+            } catch (err) {
+                console.error(err);
+                container.innerHTML = '<span class="txt-vazio" style="color:#d63031;">Não foi possível carregar o ranking deste dia.</span>';
             }
         }
 
@@ -322,13 +408,13 @@
                 }, {});
 
                 Object.keys(gruposPorMes).forEach(chaveMes => {
-                    const grupoDiv = document.createElement('div');
-                    grupoDiv.className = 'grupo-mes-container';
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'grupo-mes-container';
 
                     const tituloMes = document.createElement('div');
                     tituloMes.className = 'nome-mes-titulo';
                     tituloMes.textContent = chaveMes;
-                    grupoDiv.appendChild(tituloMes);
+                    groupDiv.appendChild(tituloMes);
 
                     const listaDiv = document.createElement('div');
                     listaDiv.className = 'lista-historico-links';
@@ -360,8 +446,8 @@
                         listaDiv.appendChild(linhaDiv);
                     });
 
-                    grupoDiv.appendChild(listaDiv);
-                    container.appendChild(grupoDiv);
+                    groupDiv.appendChild(listaDiv);
+                    container.appendChild(groupDiv);
                 });
 
             } catch (err) {
@@ -370,7 +456,7 @@
             }
         }
 
-        // 🗑️ REQUISIÇÃO PARA DELETAR CHAMADA DO HISTÓRICO
+        // 🗑️ DELETAR CHAMADA
         async function deletarChamadaDoHistorico(turma, dataIso, dataFormatada) {
             const confirmar = confirm(`⚠️ ATENÇÃO:\nTem certeza que deseja apagar permanentemente toda a chamada efetuada no dia ${dataFormatada} para a turma ${turma}?`);
             if (!confirmar) return;
@@ -382,10 +468,7 @@
                 });
 
                 const dados = await res.json();
-
-                if (!res.ok) {
-                    throw new Error(dados.erro || 'Erro ao deletar registro.');
-                }
+                if (!res.ok) throw new Error(dados.erro || 'Erro ao deletar registro.');
 
                 alert(dados.mensagem);
                 
@@ -394,13 +477,14 @@
                 }
 
                 atualizarPainelDatasDaTurma(turma);
+                carregarRankingDiario(); // Atualiza o ranking para remover a turma deletada
 
             } catch (err) {
                 alert(`Falha ao excluir registro: ${err.message}`);
             }
         }
 
-        // 🔄 BUSCAR ALUNOS DA TURMA E CONFERIR SE JÁ EXISTE CHAMADA
+        // 🔄 BUSCAR ALUNOS DA TURMA
         async function carregarAlunos() {
             const turma = document.getElementById('selectTurma').value;
             let dataSelecionada = document.getElementById('inputData').value;
@@ -429,6 +513,7 @@
                 const historico = respostaHistorico.ok ? await respostaHistorico.json() : [];
 
                 renderizarLista(historico, dataSelecionada);
+                carregarRankingDiario(); // Garante o ranking atualizado ao buscar
 
             } catch (error) {
                 alert(error.message);
@@ -524,10 +609,10 @@
         }
 
         function mudarMotivo(index, valor) {
-            canvas = alunosCarregados[index].motivo_falta = valor;
+            alunosCarregados[index].motivo_falta = valor;
         }
 
-        // 🚀 ENVIAR CHAMADA COMPLETA PRO BANCO
+        // 🚀 ENVIAR CHAMADA E RESPONDRE ATUALIZANDO O RANKING
         async function enviarChamada() {
             let dataChamada = document.getElementById('inputData').value;
             const turma = document.getElementById('selectTurma').value;
@@ -563,6 +648,7 @@
 
                 if(resposta.ok) {
                     atualizarPainelDatasDaTurma(turma);
+                    carregarRankingDiario(); // O RANKING SE ATUALIZA AQUI EM TEMPO REAL!
                     setTimeout(() => carregarAlunos(), 1000);
                 }
 
