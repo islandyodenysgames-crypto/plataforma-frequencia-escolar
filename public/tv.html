@@ -122,28 +122,37 @@
             font-style: italic;
         }
 
-        /* --- TELA 2: QUADRO GERAL EXPANDIDO --- */
+        /* --- TELA 2: QUADRO GERAL UNIFICADO --- */
         .titulo-geral {
             font-size: 3rem;
             margin: 0 0 20px 0;
             font-weight: 800;
         }
 
-        /* O Grid se adapta caso haja muitas turmas, criando colunas extras automaticamente */
+        .bloco-ranking-unico {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid #334155;
+            border-top: 6px solid var(--cor-azul);
+            text-align: left;
+            width: 100%;
+        }
+
+        .subtitulo-ranking {
+            color: var(--cor-azul); 
+            font-size: 2.1rem; 
+            margin: 0 0 20px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
         .ranking-completo-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
             gap: 25px;
             width: 100%;
-            max-height: 75vh;
-        }
-
-        .bloco-frequencia {
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 20px;
-            border: 1px solid #334155;
-            text-align: left;
+            max-height: 65vh;
         }
 
         .lista-scroll-tv {
@@ -205,7 +214,6 @@
     
     <div class="tv-container">
         
-        <!-- SLIDE 1: FOTO DA TURMA CAMPEÃ -->
         <div id="slideCampeao" class="slide ativo">
             <div class="container-campeao">
                 <div class="titulo-podio">🏆 1º LUGAR EM ASSIDUIDADE HOJE</div>
@@ -215,29 +223,21 @@
             </div>
         </div>
 
-        <!-- SLIDE 2: RANKING E FREQUÊNCIA COMPLETA DE TODAS AS TURMAS -->
         <div id="slideTabela" class="slide">
             <h1 class="titulo-geral">📊 Classificação e Frequência de Hoje</h1>
-            <div class="ranking-completo-grid">
+            
+            <div class="bloco-ranking-unico">
+                <h3 class="subtitulo-ranking">🏆 Classificação Geral das Turmas</h3>
                 
-                <!-- Coluna da Esquerda: Metade Superior do Ranking -->
-                <div class="bloco-frequencia" style="border-top: 6px solid var(--cor-sucesso);">
-                    <h3 style="color: var(--cor-sucesso); font-size: 2.1rem; margin: 0 0 15px 0;">⭐ Líderes de Presença</h3>
+                <div class="ranking-completo-grid">
                     <div id="listaFrequenciaMetade1" class="lista-scroll-tv"></div>
-                </div>
 
-                <!-- Coluna da Direita: Metade Inferior do Ranking -->
-                <div class="bloco-frequencia" style="border-top: 6px solid var(--cor-alerta);">
-                    <h3 style="color: var(--cor-alerta); font-size: 2.1rem; margin: 0 0 15px 0;">📉 Demais Turmas</h3>
                     <div id="listaFrequenciaMetade2" class="lista-scroll-tv"></div>
                 </div>
-
             </div>
         </div>
 
-        <!-- SLIDE 3: BANNER DE AVISOS DA BIBLIOTECA -->
         <div id="slideAviso" class="slide">
-            <!-- A URL deste PNG pode ser apontada para um local fixo que a biblioteca edita -->
             <div id="areaBannerAviso">
                 <img src="https://frequencia-carminha.up.railway.app/public/banners/aviso_biblioteca.png" class="banner-aviso-img" onerror="this.src='https://placehold.co/1200x600/1e293b/f8fafc?text=Espaço+Reservado+para+Avisos+da+Biblioteca+📚'" alt="Avisos Importantes">
             </div>
@@ -251,7 +251,6 @@
 
         document.getElementById('txtDataAtual').textContent = hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-        // Ordem sequencial das telas ativos
         const sequenciaSlides = ['slideCampeao', 'slideTabela', 'slideAviso'];
         let indiceSlideAtual = 0;
 
@@ -287,7 +286,7 @@
                     areaFoto.innerHTML = `<div class="foto-placeholder">📸 Adicione a foto do ${campeao.turma} na tela de gerenciamento</div>`;
                 }
 
-                // 3. Tela 2 (Distribuição de todas as turmas cadastradas)
+                // 3. Tela 2 (Distribuição contínua de todas as turmas)
                 renderizarTodasAsTurmas(dados);
 
             } catch (err) {
@@ -301,7 +300,7 @@
             metade1.innerHTML = '';
             metade2.innerHTML = '';
 
-            // Divide a lista total de turmas ao meio para equilibrar nas duas colunas grandes
+            // Divide a lista total ao meio para manter o equilíbrio visual de colunas na TV
             const meio = Math.ceil(dados.length / 2);
             
             dados.forEach((item, index) => {
@@ -312,7 +311,7 @@
                 if (index === 0) { classeEstilo = 'ouro'; iconePosicao = '🥇'; }
                 else if (index === 1) { classeEstilo = 'prata'; iconePosicao = '🥈'; }
                 else if (index === 2) { classeEstilo = 'bronze'; iconePosicao = '🥉'; }
-                else if (item.aproveitamento < 85) { classeEstilo = 'alerta'; } // Abaixo de 85% ganha borda vermelha
+                else if (item.aproveitamento < 85) { classeEstilo = 'alerta'; }
 
                 const htmlItem = `
                     <div class="ranking-item ${classeEstilo}">
@@ -326,7 +325,7 @@
                     </div>
                 `;
 
-                // Joga para a coluna 1 ou coluna 2 dependendo da metade
+                // Aloca na coluna 1 ou 2 sequencialmente de forma invisível
                 if (index < meio) {
                     metade1.innerHTML += htmlItem;
                 } else {
@@ -336,13 +335,8 @@
         }
 
         function alternarSlides() {
-            // Remove a classe ativo do slide atual
             document.getElementById(sequenciaSlides[indiceSlideAtual]).classList.remove('ativo');
-            
-            // Avança o ponteiro do slide
             indiceSlideAtual = (indiceSlideAtual + 1) % sequenciaSlides.length;
-            
-            // Ativa o próximo slide
             document.getElementById(sequenciaSlides[indiceSlideAtual]).classList.add('ativo');
         }
 
