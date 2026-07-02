@@ -146,6 +146,7 @@
             <h2>Escola Carminha 🏫</h2>
             <div class="user-info">
                 <button onclick="window.location.href='cadastro.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s;">🎒 Cadastrar Alunos/Turmas</button>
+                <button onclick="window.location.href='relatorios.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; margin-left:8px;">📊 Relatórios Mensais</button>
                 <span>Olá, <strong id="nomeProfessor">Professor</strong></span>
                 <button id="btnSair" onclick="logout()">Sair</button>
             </div>
@@ -168,6 +169,7 @@
 
             <button onclick="carregarAlunos()" id="btnBuscar">Buscar Lista</button>
             
+            <!-- 🗂️ Painel do histórico de datas -->
             <div class="painel-historico">
                 <h4 class="titulo-historico">Histórico de Chamadas Realizadas:</h4>
                 <div id="containerDatasConcluidas" class="container-scroll-historico">
@@ -324,7 +326,7 @@
             }
         }
 
-        // 🗑️ FUNÇÃO PARA ENVIAR REQUISIÇÃO DE DELETAR CHAMADA
+        // 🗑️ REQUISIÇÃO PARA DELETAR CHAMADA DO HISTÓRICO
         async function deletarChamadaDoHistorico(turma, dataIso, dataFormatada) {
             const confirmar = confirm(`⚠️ ATENÇÃO:\nTem certeza que deseja apagar permanentemente toda a chamada efetuada no dia ${dataFormatada} para a turma ${turma}?`);
             if (!confirmar) return;
@@ -343,12 +345,10 @@
 
                 alert(dados.mensagem);
                 
-                // Se a data apagada for a que está aberta na tela no momento, esconde a tabela
                 if (document.getElementById('inputData').value === dataIso && document.getElementById('selectTurma').value === turma) {
                     document.getElementById('areaChamada').style.display = 'none';
                 }
 
-                // Atualiza o painel lateral de datas imediatamente
                 atualizarPainelDatasDaTurma(turma);
 
             } catch (err) {
