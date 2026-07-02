@@ -63,7 +63,7 @@
             font-weight: bold;
             letter-spacing: 0.3px;
         }
-        
+
         .container-scroll-historico {
             max-height: 320px;
             overflow-y: auto;
@@ -91,7 +91,7 @@
             flex-direction: column;
             gap: 10px;
         }
-        
+
         .linha-historico-item {
             display: flex;
             align-items: center;
@@ -230,7 +230,7 @@
             </div>
 
             <button onclick="carregarAlunos()" id="btnBuscar">Buscar Lista</button>
-            
+
             <div class="painel-historico">
                 <h4 class="titulo-historico">Histórico de Chamadas Realizadas:</h4>
                 <div id="containerDatasConcluidas" class="container-scroll-historico">
@@ -249,7 +249,7 @@
 
         <section id="areaChamada" class="area-chamada" style="display: none;">
             <h3 id="tituloChamada">Lista de Alunos</h3>
-            
+
             <div id="badgeDataAtiva" class="banner-data-destaque"></div>
 
             <div class="tabela-responsiva">
@@ -265,7 +265,7 @@
                     </tbody>
                 </table>
             </div>
-            
+
             <button onclick="enviarChamada()" id="btnSalvarChamada">Salvar Chamada no Banco</button>
             <div id="msgFeedback"></div>
         </section>
@@ -308,29 +308,29 @@
             }
         }
 
-        // 🏆 BUSCAR E ATUALIZAR O RANKING DIÁRIO
+        // 🏆 BUSCAR E ATUALIZAR O RANKING DIÁRIO (CORRIGIDO PARA PARÂMETRO DE ROTA E PROPRIEDADE APROVEITAMENTO)
         async function carregarRankingDiario() {
             let dataSelecionada = document.getElementById('inputData').value;
             const container = document.getElementById('containerRankingDiario');
             const titulo = document.getElementById('tituloRankingDiario');
-            
+
             if (!dataSelecionada) return;
             dataSelecionada = dataSelecionada.substring(0, 10);
-            
+
             const partes = dataSelecionada.split('-');
             titulo.textContent = `🏆 Ranking Diário - ${partes[2]}/${partes[1]}/${partes[0]}`;
 
             try {
                 container.innerHTML = '<span class="txt-vazio">Atualizando ranking...</span>';
-                
-                // Endpoint padrão de listagem de ranking filtrado por data
-                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/ranking-diario?data=${dataSelecionada}`, {
+
+                // CORREÇÃO AQUI: Mudado para a estrutura de parâmetro na rota exata da API
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/ranking-diario/${dataSelecionada}`, {
                     headers: { 'x-auth-token': token }
                 });
-                
+
                 if (!res.ok) throw new Error();
                 const dadosRanking = await res.json();
-                
+
                 if (!dadosRanking || dadosRanking.length === 0) {
                     container.innerHTML = '<span class="txt-vazio">Nenhuma chamada calculada para esta data ainda.</span>';
                     return;
@@ -350,11 +350,12 @@
 
                 dadosRanking.forEach((item, index) => {
                     const classePosicao = index === 0 ? 'posicao-1' : index === 1 ? 'posicao-2' : index === 2 ? 'posicao-3' : '';
+                    // CORREÇÃO AQUI: Mudado de item.porcentagem para item.aproveitamento
                     htmlTabela += `
                         <tr class="${classePosicao}">
                             <td>${index + 1}º</td>
                             <td><strong>${item.turma}</strong></td>
-                            <td>${item.porcentagem}%</td>
+                            <td>${item.aproveitamento}%</td>
                         </tr>
                     `;
                 });
@@ -378,11 +379,11 @@
 
             try {
                 container.innerHTML = '<span class="txt-vazio">Buscando histórico no banco...</span>';
-                
+
                 const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/datas-concluidas/${encodeURIComponent(turma)}`, {
                     headers: { 'x-auth-token': token }
                 });
-                
+
                 if (!res.ok) throw new Error();
                 const datas = await res.json();
                 container.innerHTML = '';
@@ -471,13 +472,13 @@
                 if (!res.ok) throw new Error(dados.erro || 'Erro ao deletar registro.');
 
                 alert(dados.mensagem);
-                
+
                 if (document.getElementById('inputData').value === dataIso && document.getElementById('selectTurma').value === turma) {
                     document.getElementById('areaChamada').style.display = 'none';
                 }
 
                 atualizarPainelDatasDaTurma(turma);
-                carregarRankingDiario(); // Atualiza o ranking para remover a turma deletada
+                carregarRankingDiario(); 
 
             } catch (err) {
                 alert(`Falha ao excluir registro: ${err.message}`);
@@ -488,7 +489,7 @@
         async function carregarAlunos() {
             const turma = document.getElementById('selectTurma').value;
             let dataSelecionada = document.getElementById('inputData').value;
-            
+
             if (!turma) return alert('Por favor, selecione uma turma!');
             if (!dataSelecionada) return alert('Por favor, selecione uma data!');
 
@@ -500,139 +501,119 @@
 
             try {
                 const respostaLista = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
-                    method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
                 if (!respostaLista.ok) throw new Error('Erro ao buscar lista de alunos.');
-                alunosCarregados = await respostaLista.json();
+                const alunos = await respostaLista.json();
 
                 const respostaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
-                    method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
-                const historico = respostaHistorico.ok ? await respostaHistorico.json() : [];
+                if (!respostaHistorico.ok) throw new Error('Erro ao buscar histórico da chamada.');
+                const historico = await respostaHistorico.json();
 
-                renderizarLista(historico, dataSelecionada);
-                carregarRankingDiario(); // Garante o ranking atualizado ao buscar
+                alunosCarregados = alunos;
+                const tbody = document.getElementById('listaAlunosCorpo');
+                tbody.innerHTML = '';
 
-            } catch (error) {
-                alert(error.message);
+                if (alunos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="txt-vazio">Nenhum aluno ativo nesta turma.</td></tr>';
+                    document.getElementById('areaChamada').style.display = 'block';
+                    return;
+                }
+
+                alunos.forEach(aluno => {
+                    const regHistorico = historico.find(h => h.aluno_id === aluno._id);
+                    const possuiFalta = regHistorico ? regHistorico.houve_falta : false;
+                    const motivoSalvo = regHistorico && regHistorico.motivo_falta ? regHistorico.motivo_falta : 'NENHUM';
+
+                    const tr = document.createElement('tr');
+                    tr.id = `linha-${aluno._id}`;
+
+                    tr.innerHTML = `
+                        <td><strong>${aluno.nome}</strong></td>
+                        <td>
+                            <div class="btn-toggle-group">
+                                <button type="button" id="btn-p-${aluno._id}" class="btn-presenca ${!possuiFalta ? 'active' : ''}" onclick="marcarPresenca('${aluno._id}')">P</button>
+                                <button type="button" id="btn-f-${aluno._id}" class="btn-falta ${possuiFalta ? 'active' : ''}" onclick="marcarFalta('${aluno._id}')">F</button>
+                            </div>
+                        </td>
+                        <td>
+                            <select id="motivo-${aluno._id}" onchange="atualizarEstiloLinha('${aluno._id}')" ${!possuiFalta ? 'disabled' : ''}>
+                                <option value="NENHUM" ${motivoSalvo === 'NENHUM' ? 'selected' : ''}>-- Selecione o Motivo --</option>
+                                <option value="DIRETA" ${motivoSalvo === 'DIRETA' ? 'selected' : ''}>Falta Direta (Sem justificativa)</option>
+                                <option value="JUSTIFICADA" ${motivoSalvo === 'JUSTIFICADA' ? 'selected' : ''}>Falta Justificada</option>
+                                <option value="ATESTADO" ${motivoSalvo === 'ATESTADO' ? 'selected' : ''}>Atestado Médico</option>
+                                <option value="ONIBUS" ${motivoSalvo === 'ONIBUS' ? 'selected' : ''}>Problema com Ônibus</option>
+                            </select>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                    atualizarEstiloLinha(aluno._id);
+                });
+
+                document.getElementById('areaChamada').style.display = 'block';
+
+            } catch (err) {
+                alert(err.message);
             }
         }
 
-        // 🎨 RENDERIZAR LISTA NA TELA
-        function renderizarLista(historicoSalvo = [], dataAtivaIso) {
-            const corpoTabela = document.getElementById('listaAlunosCorpo');
-            const feedback = document.getElementById('msgFeedback');
-            const tituloChamada = document.getElementById('tituloChamada');
+        function marcarPresenca(id) {
+            document.getElementById(`btn-p-${id}`).classList.add('active');
+            document.getElementById(`btn-f-${id}`).classList.remove('active');
+            const select = document.getElementById(`motivo-${id}`);
+            select.value = 'NENHUM';
+            select.disabled = true;
+            atualizarEstiloLinha(id);
+        }
+
+        function marcarFalta(id) {
+            document.getElementById(`btn-p-${id}`).classList.remove('active');
+            document.getElementById(`btn-f-${id}`).classList.add('active');
+            const select = document.getElementById(`motivo-${id}`);
+            select.disabled = false;
+            if (select.value === 'NENHUM') select.value = 'DIRETA';
+            atualizarEstiloLinha(id);
+        }
+
+        function atualizarEstiloLinha(id) {
+            const linha = document.getElementById(`linha-${id}`);
+            const isFalta = document.getElementById(`btn-f-${id}`).classList.contains('active');
+            const motivo = document.getElementById(`motivo-${id}`).value;
+
+            linha.style.backgroundColor = '';
+            if (isFalta) {
+                if (motivo === 'DIRETA') linha.style.backgroundColor = '#fde8e8';
+                else linha.style.backgroundColor = '#e0f2fe';
+            }
+        }
+
+        async function enviarChamada() {
             const turma = document.getElementById('selectTurma').value;
-            
-            corpoTabela.innerHTML = '';
-            feedback.textContent = ''; 
+            let dataSelecionada = document.getElementById('inputData').value;
+            const msg = document.getElementById('msgFeedback');
 
-            if (alunosCarregados.length === 0) {
-                tituloChamada.innerHTML = `Lista de Alunos - ${turma}`;
-                corpoTabela.innerHTML = `<tr><td colspan="3" style="text-align:center;">Nenhum aluno ativo cadastrado nesta turma.</td></tr>`;
-                document.getElementById('areaChamada').style.display = 'block';
-                return;
-            }
+            if (!turma || !dataSelecionada) return;
+            dataSelecionada = dataSelecionada.substring(0, 10);
 
-            const chamadaJaFeita = historicoSalvo.length > 0;
-            
-            if (chamadaJaFeita) {
-                tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-salvo">✓ CHAMADA CONCLUÍDA</span>`;
-                feedback.textContent = 'ℹ️ Exibindo chamada já realizada nesta data. Modificações feitas abaixo sobrescreverão o registro antigo ao salvar.';
-                feedback.className = 'info-msg';
-            } else {
-                tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-pendente">⚠️ CHAMADA PENDENTE</span>`;
-            }
+            const listaFrequencia = alunosCarregados.map(aluno => {
+                const houve_falta = document.getElementById(`btn-f-${aluno._id}`).classList.contains('active');
+                const motivo_falta = document.getElementById(`motivo-${aluno._id}`).value;
 
-            alunosCarregados.forEach((aluno, index) => {
-                const registroSalvo = historicoSalvo.find(h => h.aluno_id === aluno._id);
-
-                if (registroSalvo) {
-                    aluno.houve_falta = registroSalvo.houve_falta;
-                    aluno.motivo_falta = registroSalvo.motivo_falta;
-                } else {
-                    aluno.houve_falta = false;
-                    aluno.motivo_falta = 'DIRETA'; 
-                }
-
-                if (aluno.houve_falta && (aluno.motivo_falta === 'NENHUM' || !aluno.motivo_falta)) {
-                    aluno.motivo_falta = 'DIRETA';
-                }
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${aluno.nome}</strong></td>
-                    <td>
-                        <div class="btn-toggle-group">
-                            <button type="button" class="btn-presenca ${!aluno.houve_falta ? 'active' : ''}" id="btn-p-${index}" onclick="definirPresenca(${index}, true)">P</button>
-                            <button type="button" class="btn-falta ${aluno.houve_falta ? 'active' : ''}" id="btn-f-${index}" onclick="definirPresenca(${index}, false)">F</button>
-                        </div>
-                    </td>
-                    <td>
-                        <select id="motivo-${index}" ${!aluno.houve_falta ? 'disabled' : ''} onchange="mudarMotivo(${index}, this.value)">
-                            <option value="DIRETA" ${aluno.motivo_falta === 'DIRETA' ? 'selected' : ''}>Falta Direta</option>
-                            <option value="JUSTIFICADA" ${aluno.motivo_falta === 'JUSTIFICADA' ? 'selected' : ''}>Justificada</option>
-                            <option value="ATESTADO" ${aluno.motivo_falta === 'ATESTADO' ? 'selected' : ''}>Atestado Médico</option>
-                            <option value="ONIBUS" ${aluno.motivo_falta === 'ONIBUS' ? 'selected' : ''}>Problema com Ônibus</option>
-                        </select>
-                    </td>
-                `;
-                corpoTabela.appendChild(tr);
+                return {
+                    aluno_id: aluno._id,
+                    nome: aluno.nome,
+                    turma: turma,
+                    data: dataSelecionada,
+                    houve_falta,
+                    motivo_falta
+                };
             });
 
-            document.getElementById('areaChamada').style.display = 'block';
-        }
-
-        // 🔘 ALTERAR PRESENÇA / FALTA
-        function definirPresenca(index, isPresente) {
-            const btnP = document.getElementById(`btn-p-${index}`);
-            const btnF = document.getElementById(`btn-f-${index}`);
-            const selectMotivo = document.getElementById(`motivo-${index}`);
-
-            if (isPresente) {
-                btnP.classList.add('active');
-                btnF.classList.remove('active');
-                selectMotivo.disabled = true;
-                alunosCarregados[index].houve_falta = false;
-                alunosCarregados[index].motivo_falta = 'NENHUM';
-            } else {
-                btnF.classList.add('active');
-                btnP.classList.remove('active');
-                selectMotivo.disabled = false;
-                selectMotivo.value = 'DIRETA';
-                alunosCarregados[index].houve_falta = true;
-                alunosCarregados[index].motivo_falta = 'DIRETA';
-            }
-        }
-
-        function mudarMotivo(index, valor) {
-            alunosCarregados[index].motivo_falta = valor;
-        }
-
-        // 🚀 ENVIAR CHAMADA E RESPONDRE ATUALIZANDO O RANKING
-        async function enviarChamada() {
-            let dataChamada = document.getElementById('inputData').value;
-            const turma = document.getElementById('selectTurma').value;
-            const feedback = document.getElementById('msgFeedback');
-
-            dataChamada = dataChamada.substring(0, 10);
-
-            const listaFrequencia = alunosCarregados.map(aluno => ({
-                aluno_id: aluno._id,
-                turma: turma,
-                data: dataChamada,
-                houve_falta: aluno.houve_falta,
-                motivo_falta: aluno.motivo_falta
-            }));
-
             try {
-                feedback.textContent = 'Enviando chamada...';
-                feedback.className = 'info-msg';
-
-                const resposta = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/lancar', {
+                msg.textContent = 'Salvando chamada...';
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/lancar', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -641,20 +622,14 @@
                     body: JSON.stringify({ listaFrequencia })
                 });
 
-                const dados = await resposta.json();
+                if (!res.ok) throw new Error('Erro ao salvar no banco.');
+                msg.innerHTML = '<span style="color:green; font-weight:bold;">✅ Chamada enviada e salva com sucesso!</span>';
                 
-                feedback.textContent = dados.mensagem || dados.erro;
-                feedback.className = resposta.ok ? 'sucesso-msg' : 'erro-msg';
+                atualizarPainelDatasDaTurma(turma);
+                carregarRankingDiario();
 
-                if(resposta.ok) {
-                    atualizarPainelDatasDaTurma(turma);
-                    carregarRankingDiario(); // O RANKING SE ATUALIZA AQUI EM TEMPO REAL!
-                    setTimeout(() => carregarAlunos(), 1000);
-                }
-
-            } catch (error) {
-                feedback.textContent = 'Erro de conexão com o servidor.';
-                feedback.className = 'erro-msg';
+            } catch (err) {
+                msg.innerHTML = `<span style="color:red;">Erro: ${err.message}</span>`;
             }
         }
 
