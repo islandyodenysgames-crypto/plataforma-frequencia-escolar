@@ -22,7 +22,6 @@
         <section class="filtro-chamada">
             <div class="form-group">
                 <label for="selectTurma">Selecione a Turma:</label>
-                <!-- O select agora começa vazio e será preenchido dinamicamente pelo JavaScript -->
                 <select id="selectTurma">
                     <option value="">-- Escolha uma Turma --</option>
                 </select>
@@ -58,18 +57,14 @@
     </main>
 
     <script>
-        // 🔒 PROTEÇÃO: Verifica se o usuário tem o token de login
         const token = localStorage.getItem('token_carminha');
         const nomeProf = localStorage.getItem('usuario_nome');
 
         if (!token) {
-            window.location.href = 'index.html'; // Chuta para o login se não tiver logado
+            window.location.href = 'index.html';
         } else {
             document.getElementById('nomeProfessor').textContent = nomeProf;
-            // Define a data de hoje automaticamente no input
             document.getElementById('inputData').value = new Date().toISOString().split('T')[0];
-            
-            // Carrega as turmas dinâmicas assim que a página abre
             carregarTurmasNoDashboard();
         }
 
@@ -81,13 +76,9 @@
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
                     headers: { 'x-auth-token': token }
                 });
-                
                 if (!res.ok) throw new Error("Erro ao buscar turmas");
-                
                 const turmas = await res.json();
                 const select = document.getElementById('selectTurma');
-                
-                // Preenche o select com as turmas vindas do banco
                 turmas.forEach(t => {
                     select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
                 });
@@ -96,31 +87,43 @@
             }
         }
 
-        // 🔄 BUSCAR ALUNOS DA TURMA
+        // 🔄 BUSCAR ALUNOS DA TURMA E VERIFICAR HISTÓRICO
         async function carregarAlunos() {
             const turma = document.getElementById('selectTurma').value;
+            const dataSelecionada = document.getElementById('inputData').value;
             if (!turma) return alert('Por favor, selecione uma turma!');
+            if (!dataSelecionada) return alert('Por favor, selecione uma data!');
 
             try {
-                const resposta = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
+                // 1. Busca os alunos ativos daquela turma
+                const respostaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
+                if (!respostaAlunos.ok) throw new Error('Erro ao buscar alunos.');
+                alunosCarregados = await respostaAlunos.json();
 
-                if (!resposta.ok) throw new Error('Erro ao buscar alunos.');
-                
-                alunosCarregados = await resposta.json();
-                renderizarLista();
+                // 2. Busca se já existe chamada gravada para essa turma nesta data específica
+                const respostaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
+                    method: 'GET',
+                    headers: { 'x-auth-token': token }
+                });
+                const historico = respostaHistorico.ok ? await respostaHistorico.json() : [];
+
+                // 3. Renderiza aplicando os dados encontrados ou o padrão limpo
+                renderizarLista(historico);
 
             } catch (error) {
                 alert(error.message);
             }
         }
 
-        // 🎨 RENDERIZAR LISTA NA TELA
-        function renderizarLista() {
+        // 🎨 RENDERIZAR LISTA NA TELA COBRINDO O HISTÓRICO SALVO
+        function renderizarLista(historicoSalvo = []) {
             const corpoTabela = document.getElementById('listaAlunosCorpo');
+            const feedback = document.getElementById('msgFeedback');
             corpoTabela.innerHTML = '';
+            feedback.textContent = ''; // Limpa mensagens anteriores
 
             if (alunosCarregados.length === 0) {
                 corpoTabela.innerHTML = `<tr><td colspan="3" style="text-align:center;">Nenhum aluno ativo cadastrado nesta turma.</td></tr>`;
@@ -128,27 +131,43 @@
                 return;
             }
 
+            // Se o array de histórico tiver itens, significa que a chamada já foi realizada
+            const chamadaJaFeita = historicoSalvo.length > 0;
+            if (chamadaJaFeita) {
+                feedback.textContent = 'ℹ️ Exibindo chamada já realizada nesta data. Você pode alterá-la e salvar novamente se necessário.';
+                feedback.className = 'info-msg';
+            }
+
             alunosCarregados.forEach((aluno, index) => {
-                // Criamos um estado inicial na lista: Todos começam como Presente (houve_falta = false)
-                aluno.houve_falta = false;
-                aluno.motivo_falta = 'NENHUM';
+                // Procura se este aluno específico tem um registro no histórico recuperado
+                const registroSalvo = historicoSalvo.find(h => h.aluno_id === aluno._id);
+
+                if (registroSalvo) {
+                    // Restaura o estado salvo do banco de dados
+                    aluno.houve_falta = registroSalvo.houve_falta;
+                    aluno.motivo_falta = registroSalvo.motivo_falta;
+                } else {
+                    // Padrão limpo: Todos começam Presentes (houve_falta = false)
+                    aluno.houve_falta = false;
+                    aluno.motivo_falta = 'NENHUM';
+                }
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><strong>${aluno.nome}</strong></td>
                     <td>
                         <div class="btn-toggle-group">
-                            <button type="button" class="btn-presenca active" id="btn-p-${index}" onclick="definirPresenca(${index}, true)">P</button>
-                            <button type="button" class="btn-falta" id="btn-f-${index}" onclick="definirPresenca(${index}, false)">F</button>
+                            <button type="button" class="btn-presenca ${!aluno.houve_falta ? 'active' : ''}" id="btn-p-${index}" onclick="definirPresenca(${index}, true)">P</button>
+                            <button type="button" class="btn-falta ${aluno.houve_falta ? 'active' : ''}" id="btn-f-${index}" onclick="definirPresenca(${index}, false)">F</button>
                         </div>
                     </td>
                     <td>
-                        <select id="motivo-${index}" disabled onchange="mudarMotivo(${index}, this.value)">
-                            <option value="NENHUM">Nenhum</option>
-                            <option value="DIRETA">Falta Direta</option>
-                            <option value="JUSTIFICADA">Justificada</option>
-                            <option value="ATESTADO">Atestado Médico</option>
-                            <option value="ONIBUS">Problema com Ônibus</option>
+                        <select id="motivo-${index}" ${!aluno.houve_falta ? 'disabled' : ''} onchange="mudarMotivo(${index}, this.value)">
+                            <option value="NENHUM" ${aluno.motivo_falta === 'NENHUM' ? 'selected' : ''}>Nenhum</option>
+                            <option value="DIRETA" ${aluno.motivo_falta === 'DIRETA' ? 'selected' : ''}>Falta Direta</option>
+                            <option value="JUSTIFICADA" ${aluno.motivo_falta === 'JUSTIFICADA' ? 'selected' : ''}>Justificada</option>
+                            <option value="ATESTADO" ${aluno.motivo_falta === 'ATESTADO' ? 'selected' : ''}>Atestado Médico</option>
+                            <option value="ONIBUS" ${aluno.motivo_falta === 'ONIBUS' ? 'selected' : ''}>Problema com Ônibus</option>
                         </select>
                     </td>
                 `;
@@ -175,7 +194,7 @@
                 btnF.classList.add('active');
                 btnP.classList.remove('active');
                 selectMotivo.disabled = false;
-                selectMotivo.value = 'DIRETA'; // Padrão se faltou
+                selectMotivo.value = 'DIRETA';
                 alunosCarregados[index].houve_falta = true;
                 alunosCarregados[index].motivo_falta = 'DIRETA';
             }
@@ -191,7 +210,6 @@
             const turma = document.getElementById('selectTurma').value;
             const feedback = document.getElementById('msgFeedback');
 
-            // Formata o pacote conforme o back-end espera (listaFrequencia)
             const listaFrequencia = alunosCarregados.map(aluno => ({
                 aluno_id: aluno._id,
                 turma: turma,
@@ -217,6 +235,11 @@
                 
                 feedback.textContent = dados.mensagem || dados.erro;
                 feedback.className = resposta.ok ? 'sucesso-msg' : 'erro-msg';
+
+                // Recarrega a lista para fixar visualmente as cores salvas
+                if(resposta.ok) {
+                    setTimeout(() => carregarAlunos(), 1000);
+                }
 
             } catch (error) {
                 feedback.textContent = 'Erro de conexão com o servidor.';
