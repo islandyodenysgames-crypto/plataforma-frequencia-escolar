@@ -35,7 +35,7 @@
                     <input type="number" id="tempoTelaTabela" value="15" min="3" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px; box-sizing: border-box;">
                 </div>
 
-                <button onclick="salvarTemposPadrao()" style="background: #4f46e5; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: background 0.2s;">💾 Salvar Alterações de Tempo</button>
+                <button onclick="salvarTemposPadrao()" style="background: #4f46e5; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">💾 Salvar Alterações de Tempo</button>
                 
                 <div id="statusSalvamento" style="font-size: 0.85rem; color: #16a34a; font-weight: bold; margin-top: 10px; text-align: center; display: none; background: #dcfce7; padding: 6px; border-radius: 4px;">✅ Tempos salvos e aplicados com sucesso!</div>
             </div>
@@ -88,9 +88,10 @@
             
             const status = document.getElementById('statusSalvamento');
             status.style.display = 'block';
-            setTimeout(() => {
-                status.style.display = 'none';
-            }, 4000);
+            setTimeout(() => { status.style.display = 'none'; }, 4000);
+            
+            // Força a redesenhar a lista garantindo que ela não suma da tela
+            buscarPlaylist();
         }
 
         function detectarTipoEFormatar(url) {
@@ -101,7 +102,7 @@
                 tipo = 'instagram';
                 if (urlFormatada.includes('?')) urlFormatada = urlFormatada.split('?')[0];
                 if (!urlFormatada.endsWith('/')) urlFormatada += '/';
-                urlFormatada += 'embed'; // Retornamos ao padrão embed simples para que a máscara CSS funcione perfeitamente
+                urlFormatada += 'embed';
                 return { tipo, url: urlFormatada };
             }
             if (urlFormatada.includes('youtube.com/watch?v=')) {
@@ -164,7 +165,7 @@
 
             if (!titulo || !urlOriginal) return alert("Preencha os campos!");
 
-            const midiaTratada = detectarTipoEFormatar(urlOriginal);
+            const midiaTratada = Pharaoh = detectarTipoEFormatar(urlOriginal);
 
             try {
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist', {
