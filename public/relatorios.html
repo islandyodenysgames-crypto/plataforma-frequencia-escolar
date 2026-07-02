@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatórios de Frequência - Escola Carminha</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Ajuste estético para colocar as duas datas lado a lado */
+        .bloco-datas-linha {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+        .bloco-datas-linha .form-group {
+            flex: 1;
+        }
+    </style>
 </head>
 <body>
     <header class="main-header">
@@ -20,8 +31,8 @@
 
     <main class="dashboard-container">
         <section class="filtro-chamada">
-            <h3 style="margin-top:0; color:#1e293b;">📊 Gerador de Relatórios Mensais</h3>
-            <p style="color:#64748b; font-size:0.9rem; margin-bottom:20px;">Selecione os filtros abaixo para analisar a assiduidade e os motivos de falta da turma.</p>
+            <h3 style="margin-top:0; color:#1e293b;">📊 Gerador de Relatórios por Período</h3>
+            <p style="color:#64748b; font-size:0.9rem; margin-bottom:20px;">Escolha a turma e defina o intervalo exato de dias para a análise de assiduidade.</p>
 
             <div class="form-group">
                 <label for="selectTurma">Selecione a Turma:</label>
@@ -30,9 +41,15 @@
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="inputMes">Selecione o Mês / Ano:</label>
-                <input type="month" id="inputMes">
+            <div class="bloco-datas-linha">
+                <div class="form-group">
+                    <label for="inputDataInicio">Data Inicial:</label>
+                    <input type="date" id="inputDataInicio">
+                </div>
+                <div class="form-group">
+                    <label for="inputDataFim">Data Final:</label>
+                    <input type="date" id="inputDataFim">
+                </div>
             </div>
 
             <button onclick="gerarRelatorio()" id="btnBuscar" style="width:100%; margin-top:10px;">Gerar Relatório Analítico</button>
@@ -71,10 +88,16 @@
             window.location.href = 'index.html';
         } else {
             document.getElementById('nomeProfessor').textContent = nomeProf;
-            // Define o mês atual por padrão no input tipo month (AAAA-MM)
+            
+            // Define o intervalo padrão automático cobrindo do dia 01 do mês atual até o dia de hoje
             const hoje = new Date();
-            const mesFormatado = String(hoje.getMonth() + 1).padStart(2, '0');
-            document.getElementById('inputMes').value = `${hoje.getFullYear()}-${mesFormatado}`;
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            
+            document.getElementById('inputDataInicio').value = `${ano}-${mes}-01`;
+            document.getElementById('inputDataFim').value = `${ano}-${mes}-${dia}`;
+            
             carregarTurmas();
         }
 
@@ -96,17 +119,23 @@
 
         async function gerarRelatorio() {
             const turma = document.getElementById('selectTurma').value;
-            const anoMes = document.getElementById('inputMes').value;
+            const dataInicio = document.getElementById('inputDataInicio').value;
+            const dataFim = document.getElementById('inputDataFim').value;
 
             if (!turma) return alert('Por favor, selecione a turma.');
-            if (!anoMes) return alert('Por favor, selecione o mês de referência.');
+            if (!dataInicio || !dataFim) return alert('Por favor, defina o intervalo completo (Início e Fim).');
+
+            if (new Date(dataInicio) > new Date(dataFim)) {
+                return alert('A data inicial não pode ser maior do que a data final!');
+            }
 
             const btn = document.getElementById('btnBuscar');
             try {
                 btn.textContent = 'Processando...';
                 btn.disabled = true;
 
-                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/relatorio/${encodeURIComponent(turma)}/${anoMes}`, {
+                // Requisição atualizada passando os dois parâmetros de data separadamente
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/relatorio/${encodeURIComponent(turma)}/${dataInicio}/${dataFim}`, {
                     headers: { 'x-auth-token': token }
                 });
 
@@ -116,8 +145,13 @@
                 btn.disabled = false;
 
                 if (!res.ok) {
-                    throw new Error(dados.erro || dados.detalhes || 'Erro desconhecido no servidor.');
+                    throw new Error(dados.erro || 'Erro desconhecido no servidor.');
                 }
+
+                // Ajusta dinamicamente o cabeçalho impresso com o intervalo escolhido
+                const dePartes = dataInicio.split('-');
+                const atePartes = dataFim.split('-');
+                document.getElementById('tituloRelatorio').textContent = `Período Analisado: ${dePartes[2]}/${dePartes[1]} até ${atePartes[2]}/${atePartes[1]}/${atePartes[0]}`;
 
                 renderizarTabelaRelatorio(dados);
             } catch (err) {
@@ -132,7 +166,7 @@
             corpo.innerHTML = '';
 
             if (dados.length === 0) {
-                corpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Nenhum registro de chamada encontrado para esta combinação.</td></tr>`;
+                corpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Nenhum registro de chamada encontrado para este intervalo de tempo.</td></tr>`;
                 document.getElementById('areaRelatorio').style.display = 'block';
                 return;
             }
@@ -140,16 +174,14 @@
             dados.forEach(item => {
                 const tr = document.createElement('tr');
                 
-                // Determina cor de alerta baseado na assiduidade (abaixo de 75% fica vermelho)
-                let corFrequencia = '#16a34a'; // verde
+                let corFrequencia = '#16a34a';
                 let pesoFonte = 'bold';
                 if (item.percentualPresenca < 75) {
-                    corFrequencia = '#dc2626'; // vermelho crítico
+                    corFrequencia = '#dc2626';
                 } else if (item.percentualPresenca < 90) {
-                    corFrequencia = '#d97706'; // amarelo atenção
+                    corFrequencia = '#d97706';
                 }
 
-                // String amigável de motivos
                 let motivosTxt = [];
                 if (item.motivosDetails.DIRETA > 0) motivosTxt.push(`Direta (${item.motivosDetails.DIRETA})`);
                 if (item.motivosDetails.JUSTIFICADA > 0) motivosTxt.push(`Justif. (${item.motivosDetails.JUSTIFICADA})`);
@@ -166,7 +198,7 @@
                     <td style="text-align:center; color:${corFrequencia}; font-weight:${pesoFonte}; font-size:1.05rem;">
                         ${item.percentualPresenca}%
                     </td>
-                    <td style="font-size:0.9rem; color:#475569;">${resSummary = resumoMotivos}</td>
+                    <td style="font-size:0.9rem; color:#475569;">${resumoMotivos}</td>
                 `;
                 corpo.appendChild(tr);
             });
