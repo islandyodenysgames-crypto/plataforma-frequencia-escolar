@@ -3,132 +3,175 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador de Mídia - Biblioteca</title>
+    <title>Central de Mídias e Biblioteca - Escola Carminha</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        :root { --primary-color: #6366f1; --success-color: #10b981; --danger-color: #ef4444; }
-        .grid-biblioteca { display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 2rem; }
-        .form-midia { flex: 1; min-width: 300px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .lista-midia { flex: 2; min-width: 350px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .item-midia { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: #fff; }
-        .badge-imagem { background: #3b82f6; } .badge-video { background: #ec4899; } .badge-musica { background: #eab308; }
-    </style>
 </head>
 <body>
-    <header class="main-header" style="background: var(--primary-color)">
+    <header class="main-header">
         <div class="header-content">
-            <h2>Painel de Mídia da Biblioteca 📚</h2>
-            <button onclick="window.location.href='dashboard.html'" style="cursor:pointer;">← Voltar</button>
+            <h2>Central de Mídias e Biblioteca 📚📺</h2>
+            <div class="user-info">
+                <button onclick="window.location.href='dashboard.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer;">⬅️ Voltar ao Dashboard</button>
+            </div>
         </div>
     </header>
 
-    <main class="dashboard-container">
-        <div class="grid-biblioteca">
-            <section class="form-midia">
-                <h3>+ Adicionar Conteúdo ao Telão</h3>
-                <form id="formNovaMidia">
-                    <div class="form-group" style="margin-bottom:1rem;">
-                        <label>Tipo de Mídia:</label>
-                        <select id="tipoMidia" required onchange="ajustarCamposForm(this.value)">
-                            <option value="imagem">Banner (Imagem PNG/JPG)</option>
-                            <option value="video">Vídeo (YouTube ou MP4 direto)</option>
-                            <option value="musica">Música de Fundo (Link MP3)</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:1rem;">
-                        <label>Título / Descrição:</label>
-                        <input type="text" id="tituloMidia" required placeholder="Ex: Feira do Livro 2026">
-                    </div>
-                    <div class="form-group" style="margin-bottom:1rem;">
-                        <label>URL do Link (Endereço da Mídia):</label>
-                        <input type="url" id="urlMidia" required placeholder="https://...">
-                    </div>
-                    <div class="form-group" id="campoDuracao" style="margin-bottom:1.5rem;">
-                        <label>Duração na Tela (segundos):</label>
-                        <input type="number" id="duracaoMidia" value="15" min="5">
-                    </div>
-                    <button type="submit" style="background: var(--success-color); color:white; border:none; padding:10px; width:100%; font-weight:bold; border-radius:4px; cursor:pointer;">Inserir na Playlist</button>
-                </form>
-            </section>
+    <main class="dashboard-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
+        
+        <!-- LADO ESQUERDO: GERENCIADOR DO TELÃO -->
+        <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3>📺 Controlar Playlist do Telão</h3>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">Adicione vídeos do YouTube, posts/reels do Instagram ou avisos em imagem para rodar no telão da escola.</p>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Título do Conteúdo:</label>
+                <input type="text" id="midiaTitulo" placeholder="Ex: Fotos da Festa Junina / Aviso Importante">
+            </div>
 
-            <section class="lista-midia">
-                <h3>📋 Playlist Atual do Telão</h3>
-                <div id="playlistContainer">Carregando mídias...</div>
-            </section>
-        </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Link da Mídia (YouTube, Instagram ou Imagem pública):</label>
+                <input type="text" id="midiaUrl" placeholder="https://www.instagram.com/p/... ou https://youtube.com/watch?v=...">
+                <small style="color: #4f46e5; display: block; margin-top: 4px;">💡 Links de posts ou reels do Instagram agora são aceitos!</small>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Tempo de Exibição (segundos):</label>
+                <input type="number" id="midiaTempo" value="15" min="5">
+            </div>
+
+            <button onclick="adicionarMidia()" style="background: #22c55e; color: white; width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Adicionar à Playlist</button>
+
+            <h4 style="margin-top: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Lista de Reprodução Atual</h4>
+            <div id="listaPlaylist" style="max-height: 250px; overflow-y: auto; margin-top: 10px;"></div>
+        </section>
+
+        <!-- LADO DIREITO: BIBLIOTECA DE ARQUIVOS (Opcional/Existente) -->
+        <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3>📚 Biblioteca Digital Pedagógica</h3>
+            <p style="font-size: 0.9rem; color: #64748b;">Repositório fixo de documentos internos, calendários e planejamentos.</p>
+            <div style="margin-top: 20px; padding: 40px; text-align: center; border: 2px dashed #cbd5e1; color: #94a3b8; border-radius: 6px;">
+                Área da Biblioteca (Armazenamento de PDFs e Matrizes)
+            </div>
+        </section>
     </main>
 
     <script>
         const token = localStorage.getItem('token_carminha');
         if (!token) window.location.href = 'index.html';
 
-        function ajustarCamposForm(tipo) {
-            const campoDuracao = document.getElementById('campoDuracao');
-            // Vídeos e músicas rolam pelo tempo nativo do arquivo, banners precisam de tempo fixo
-            campoDuracao.style.display = (tipo === 'imagem') ? 'block' : 'none';
+        // Carrega a playlist ao abrir a página
+        document.addEventListener('DOMContentLoaded', buscarPlaylist);
+
+        // Função para formatar links do YouTube e do Instagram para formatos aceitos em Iframe
+        function formatarLinkMidia(url) {
+            let urlFormatada = url.trim();
+
+            // Trata links do Instagram (Post ou Reels)
+            if (urlFormatada.includes('instagram.com')) {
+                // Remove barras extras ou query parameters finais se houver
+                if (urlFormatada.includes('?')) {
+                    urlFormatada = urlFormatada.split('?')[0];
+                }
+                if (!urlFormatada.endsWith('/')) {
+                    urlFormatada += '/';
+                }
+                // Adiciona o sufixo necessário para embutir o post de forma pública
+                urlFormatada += 'embed';
+                return urlFormatada;
+            }
+
+            // Trata links normais do YouTube
+            if (urlFormatada.includes('youtube.com/watch?v=')) {
+                const videoId = urlFormatada.split('v=')[1]?.split('&')[0];
+                return `https://www.youtube.com/embed/${videoId}`;
+            }
+            // Trata links curtos do YouTube (youtu.be)
+            if (urlFormatada.includes('youtu.be/')) {
+                const videoId = urlFormatada.split('youtu.be/')[1]?.split('?')[0];
+                return `https://www.youtube.com/embed/${videoId}`;
+            }
+
+            return urlFormatada;
         }
 
-        async function carregarPlaylist() {
+        async function buscarPlaylist() {
             try {
-                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midias/playlist');
-                const midias = await res.json();
-                const container = document.getElementById('playlistContainer');
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midia/playlist', {
+                    headers: { 'x-auth-token': token }
+                });
+                const mídias = await res.json();
+                const container = document.getElementById('listaPlaylist');
                 container.innerHTML = '';
 
-                if(midias.length === 0) {
-                    container.innerHTML = '<p style="color:#64748b">Nenhum aviso ou mídia cadastrada pela biblioteca.</p>';
+                if (mídias.length === 0) {
+                    container.innerHTML = '<p style="color: #94a3b8; font-style: italic;">Nenhuma mídia ativa no telão.</p>';
                     return;
                 }
 
-                midias.forEach(m => {
+                mídias.forEach(item => {
+                    let tipoIcone = item.url.includes('instagram') ? '📸' : (item.url.includes('youtube') ? '🎥' : '🖼️');
                     container.innerHTML += `
-                        <div class="item-midia">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 8px; border-radius: 6px;">
                             <div>
-                                <span class="badge badge-${m.tipo}">${m.tipo.toUpperCase()}</span>
-                                <strong style="margin-left:10px;">${m.titulo}</strong>
-                                <br><small style="color:#64748b; word-break:break-all;">${m.url}</small>
+                                <strong>${tipoIcone} ${item.titulo}</strong>
+                                <br><small style="color:#64748b;">Tempo: ${item.tempoExibicao}s</small>
                             </div>
-                            <button onclick="removerMidia('${m._id}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer;">Excluir</button>
+                            <button onclick="removerMidia('${item._id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Excluir</button>
                         </div>
                     `;
                 });
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error("Erro ao buscar playlist:", err);
+            }
         }
 
-        document.getElementById('formNovaMidia').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const tipo = document.getElementById('tipoMidia').value;
-            const titulo = document.getElementById('tituloMidia').value;
-            const url = document.getElementById('urlMidia').value;
-            const duracao = document.getElementById('duracaoMidia').value;
+        async function adicionarMidia() {
+            const titulo = document.getElementById('midiaTitulo').value;
+            const urlOriginal = document.getElementById('midiaUrl').value;
+            const tempoExibicao = document.getElementById('midiaTempo').value;
+
+            if (!titulo || !urlOriginal) {
+                return alert("Por favor, preencha o título e o link da mídia!");
+            }
+
+            // Aplica a formatação inteligente de links
+            const url = formatarLinkMidia(urlOriginal);
 
             try {
-                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midias', {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midia/adicionar', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                    body: JSON.stringify({ tipo, titulo, url, duracao: tipo === 'imagem' ? duracao : 0 })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-auth-token': token
+                    },
+                    body: JSON.stringify({ titulo, url, tempoExibicao: parseInt(tempoExibicao) })
                 });
-                if(res.ok) {
-                    document.getElementById('formNovaMidia').reset();
-                    ajustarCamposForm('imagem');
-                    carregarPlaylist();
+
+                if (res.ok) {
+                    document.getElementById('midiaTitulo').value = '';
+                    document.getElementById('midiaUrl').value = '';
+                    buscarPlaylist();
+                } else {
+                    const err = await res.json();
+                    alert("Erro: " + err.erro);
                 }
-            } catch(err) { alert("Erro ao salvar"); }
-        });
+            } catch (error) {
+                alert("Erro ao conectar com o servidor.");
+            }
+        }
 
         async function removerMidia(id) {
-            if(!confirm("Remover este item da programação da TV?")) return;
+            if (!confirm("Remover esta mídia do telão?")) return;
             try {
-                await fetch(`https://frequencia-carminha.up.railway.app/api/midias/${id}`, {
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/midia/remover/${id}`, {
                     method: 'DELETE',
                     headers: { 'x-auth-token': token }
                 });
-                carregarPlaylist();
-            } catch(err) { console.error(err); }
+                if (res.ok) buscarPlaylist();
+            } catch (error) {
+                alert("Erro ao remover item.");
+            }
         }
-
-        carregarPlaylist();
     </script>
 </body>
 </html>
