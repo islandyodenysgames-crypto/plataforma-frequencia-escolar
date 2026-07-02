@@ -79,9 +79,9 @@ router.post('/alunos', auth, async (req, res) => {
         const { nome, turma } = req.body;
         if (!nome || !turma) return res.status(400).json({ erro: 'Nome e turma são obrigatórios.' });
 
-        const novoAluno = new Aluno({ nome, turma, ativo: true });
-        await novoAluno.save();
-        res.status(201).json({ mensagem: 'Aluno cadastrado com sucesso! 🎒', aluno: novoAluno });
+        const novaAluno = new Aluno({ nome, turma, ativo: true });
+        await novaAluno.save();
+        res.status(201).json({ mensagem: 'Aluno cadastrado com sucesso! 🎒', aluno: novaAluno });
     } catch (error) {
         res.status(500).json({ erro: error.message });
     }
@@ -239,7 +239,7 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🏆🏆 RANKING DIÁRIO CORRIGIDO (NÃO APAGA MAIS TURMAS SEM CHAMADA) 🏆🏆
+// 🏆🏆 RANKING DIÁRIO CORRIGIDO PARA TV E DASHBOARD 🏆🏆
 // ==========================================
 router.get('/ranking-diario/:data', async (req, res) => {
     try {
@@ -247,6 +247,12 @@ router.get('/ranking-diario/:data', async (req, res) => {
 
         const turmas = await Turma.find().sort({ nome: 1 });
         const registrosDia = await Frequencia.find({ data });
+
+        // 🔥 CORREÇÃO PARA O DASHBOARD: Se o dia não tiver NENHUMA chamada feita ainda, 
+        // retorna array vazio para o dashboard exibir o estado correto sem dar erro.
+        if (registrosDia.length === 0) {
+            return res.json([]);
+        }
 
         const promessasRanking = turmas.map(async (turma) => {
             const totalAlunosTurma = await Aluno.countDocuments({ turma: turma.nome, ativo: true });
@@ -256,8 +262,8 @@ router.get('/ranking-diario/:data', async (req, res) => {
 
             const chamadasDaTurma = registrosDia.filter(r => r.turma === turma.nome);
 
-            // 🔥 CORREÇÃO: Se não houver chamadas feitas para ela hoje, ela retorna com 0% 
-            // ao invés de retornar 'null' e sumir do painel da escola.
+            // 🔥 CORREÇÃO PARA A TV: Se o dia já começou mas ESSA turma está sem chamada,
+            // ela vai para o final da fila com 0% em vez de sumir do mapa.
             if (chamadasDaTurma.length === 0) {
                 return {
                     turma: turma.nome,
@@ -266,7 +272,7 @@ router.get('/ranking-diario/:data', async (req, res) => {
                     totalFaltas: 0,
                     faltasJustificadas: 0,
                     aproveitamento: 0,
-                    porcentagem: 0, // Mantém compatibilidade com dashboards
+                    porcentagem: 0, // Garante compatibilidade retroativa com variáveis antigas
                     fotoUrl: turma.fotoUrl || ''
                 };
             }
@@ -280,7 +286,7 @@ router.get('/ranking-diario/:data', async (req, res) => {
                 return false;
             }).length;
 
-            // Coleta dados gerais de faltas para alimentar as labels da TV
+            // Coleta dados gerais de faltas para alimentar as tabelas detalhadas
             const totalFaltasGerais = chamadasDaTurma.filter(r => r.houve_falta === true).length;
             const faltasJustificadas = chamadasDaTurma.filter(
                 r => r.houve_falta === true && r.motivo_falta !== 'DIRETA' && r.motivo_falta !== 'NENHUM'
@@ -297,13 +303,13 @@ router.get('/ranking-diario/:data', async (req, res) => {
                 faltasJustificadas: faltasJustificadas,
                 aproveitamento: Math.max(0, indicePresenca),
                 porcentagem: Math.max(0, indicePresenca),
-                fotoUrl: turma.fotoUrl || ''
+                fotoUrl: turma.fotoUrl || '' // Mantém o envio da foto do banco para os destaques
             };
         });
 
         const resultadoBruto = await Promise.all(promessasRanking);
         
-        // Remove apenas itens nulos (como turmas vazias sem alunos matriculados)
+        // Remove itens nulos e ordena do maior aproveitamento para o menor
         const rankingOrdenado = resultadoBruto
             .filter(item => item !== null)
             .sort((a, b) => b.aproveitamento - a.aproveitamento);
