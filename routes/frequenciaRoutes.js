@@ -42,7 +42,7 @@ router.put('/turmas/foto/:id', auth, async (req, res) => {
         const { fotoUrl } = req.body;
         const turma = await Turma.findByIdAndUpdate(req.params.id, { fotoUrl }, { new: true });
         if (!turma) return res.status(404).json({ erro: 'Turma não encontrada.' });
-        res.json({ mensagem: 'Foto da turma atualizada com sucesso! 📸', turma });
+        res.json({ mensagem: 'Foto da turma updated com sucesso! 📸', turma });
     } catch (error) {
         res.status(500).json({ erro: error.message });
     }
@@ -238,27 +238,40 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
     }
 });
 
-// 🏆 GERAR RANKING DIÁRIO DE FREQUÊNCIA DAS TURMAS (ROTA PÚBLICA - COM SUPORTE À URL DA FOTO)
+// ==========================================
+// 🏆🏆 RANKING DIÁRIO CORRIGIDO (NÃO APAGA MAIS TURMAS SEM CHAMADA) 🏆🏆
+// ==========================================
 router.get('/ranking-diario/:data', async (req, res) => {
     try {
-        const { data } = req.params; // Formato: "AAAA-MM-DD"
+        const { data } = req.params; // Formato esperado: "YYYY-MM-DD"
 
         const turmas = await Turma.find().sort({ nome: 1 });
         const registrosDia = await Frequencia.find({ data });
 
-        if (registrosDia.length === 0) {
-            return res.json([]);
-        }
-
         const promessasRanking = turmas.map(async (turma) => {
             const totalAlunosTurma = await Aluno.countDocuments({ turma: turma.nome, ativo: true });
             
+            // Se a turma existir mas não tiver nenhum aluno cadastrado nela, pula
             if (totalAlunosTurma === 0) return null;
 
             const chamadasDaTurma = registrosDia.filter(r => r.turma === turma.nome);
 
-            if (chamadasDaTurma.length === 0) return null;
+            // 🔥 CORREÇÃO: Se não houver chamadas feitas para ela hoje, ela retorna com 0% 
+            // ao invés de retornar 'null' e sumir do painel da escola.
+            if (chamadasDaTurma.length === 0) {
+                return {
+                    turma: turma.nome,
+                    totalAlunos: totalAlunosTurma,
+                    faltasDiretas: 0,
+                    totalFaltas: 0,
+                    faltasJustificadas: 0,
+                    aproveitamento: 0,
+                    porcentagem: 0, // Mantém compatibilidade com dashboards
+                    fotoUrl: turma.fotoUrl || ''
+                };
+            }
 
+            // Caso existam chamadas, calcula as faltas diretas (penalizadas)
             const faltasPenalizadas = chamadasDaTurma.filter(r => {
                 if (r.houve_falta === true) {
                     const motivo = r.motivo_falta ? r.motivo_falta.toString().toUpperCase() : 'DIRETA';
@@ -267,6 +280,12 @@ router.get('/ranking-diario/:data', async (req, res) => {
                 return false;
             }).length;
 
+            // Coleta dados gerais de faltas para alimentar as labels da TV
+            const totalFaltasGerais = chamadasDaTurma.filter(r => r.houve_falta === true).length;
+            const faltasJustificadas = chamadasDaTurma.filter(
+                r => r.houve_falta === true && r.motivo_falta !== 'DIRETA' && r.motivo_falta !== 'NENHUM'
+            ).length;
+
             const alunosPresentesVirtuais = totalAlunosTurma - faltasPenalizadas;
             const indicePresenca = Math.round((alunosPresentesVirtuais / totalAlunosTurma) * 100);
 
@@ -274,13 +293,17 @@ router.get('/ranking-diario/:data', async (req, res) => {
                 turma: turma.nome,
                 totalAlunos: totalAlunosTurma,
                 faltasDiretas: faltasPenalizadas,
+                totalFaltas: totalFaltasGerais,
+                faltasJustificadas: faltasJustificadas,
                 aproveitamento: Math.max(0, indicePresenca),
-                fotoUrl: turma.fotoUrl || '' // 🔥 Fornecendo a foto salva para compor o destaque na TV
+                porcentagem: Math.max(0, indicePresenca),
+                fotoUrl: turma.fotoUrl || ''
             };
         });
 
         const resultadoBruto = await Promise.all(promessasRanking);
         
+        // Remove apenas itens nulos (como turmas vazias sem alunos matriculados)
         const rankingOrdenado = resultadoBruto
             .filter(item => item !== null)
             .sort((a, b) => b.aproveitamento - a.aproveitamento);
