@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Mídia - Biblioteca</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        :root { --primary-color: #6366f1; --success-color: #10b981; --danger-color: #ef4444; }
+        .grid-biblioteca { display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 2rem; }
+        .form-midia { flex: 1; min-width: 300px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .lista-midia { flex: 2; min-width: 350px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .item-midia { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: #fff; }
+        .badge-imagem { background: #3b82f6; } .badge-video { background: #ec4899; } .badge-musica { background: #eab308; }
+    </style>
+</head>
+<body>
+    <header class="main-header" style="background: var(--primary-color)">
+        <div class="header-content">
+            <h2>Painel de Mídia da Biblioteca 📚</h2>
+            <button onclick="window.location.href='dashboard.html'" style="cursor:pointer;">← Voltar</button>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <div class="grid-biblioteca">
+            <section class="form-midia">
+                <h3>+ Adicionar Conteúdo ao Telão</h3>
+                <form id="formNovaMidia">
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label>Tipo de Mídia:</label>
+                        <select id="tipoMidia" required onchange="ajustarCamposForm(this.value)">
+                            <option value="imagem">Banner (Imagem PNG/JPG)</option>
+                            <option value="video">Vídeo (YouTube ou MP4 direto)</option>
+                            <option value="musica">Música de Fundo (Link MP3)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label>Título / Descrição:</label>
+                        <input type="text" id="tituloMidia" required placeholder="Ex: Feira do Livro 2026">
+                    </div>
+                    <div class="form-group" style="margin-bottom:1rem;">
+                        <label>URL do Link (Endereço da Mídia):</label>
+                        <input type="url" id="urlMidia" required placeholder="https://...">
+                    </div>
+                    <div class="form-group" id="campoDuracao" style="margin-bottom:1.5rem;">
+                        <label>Duração na Tela (segundos):</label>
+                        <input type="number" id="duracaoMidia" value="15" min="5">
+                    </div>
+                    <button type="submit" style="background: var(--success-color); color:white; border:none; padding:10px; width:100%; font-weight:bold; border-radius:4px; cursor:pointer;">Inserir na Playlist</button>
+                </form>
+            </section>
+
+            <section class="lista-midia">
+                <h3>📋 Playlist Atual do Telão</h3>
+                <div id="playlistContainer">Carregando mídias...</div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const token = localStorage.getItem('token_carminha');
+        if (!token) window.location.href = 'index.html';
+
+        function ajustarCamposForm(tipo) {
+            const campoDuracao = document.getElementById('campoDuracao');
+            // Vídeos e músicas rolam pelo tempo nativo do arquivo, banners precisam de tempo fixo
+            campoDuracao.style.display = (tipo === 'imagem') ? 'block' : 'none';
+        }
+
+        async function carregarPlaylist() {
+            try {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midias/playlist');
+                const midias = await res.json();
+                const container = document.getElementById('playlistContainer');
+                container.innerHTML = '';
+
+                if(midias.length === 0) {
+                    container.innerHTML = '<p style="color:#64748b">Nenhum aviso ou mídia cadastrada pela biblioteca.</p>';
+                    return;
+                }
+
+                midias.forEach(m => {
+                    container.innerHTML += `
+                        <div class="item-midia">
+                            <div>
+                                <span class="badge badge-${m.tipo}">${m.tipo.toUpperCase()}</span>
+                                <strong style="margin-left:10px;">${m.titulo}</strong>
+                                <br><small style="color:#64748b; word-break:break-all;">${m.url}</small>
+                            </div>
+                            <button onclick="removerMidia('${m._id}')" style="background:none; border:none; color:var(--danger-color); font-weight:bold; cursor:pointer;">Excluir</button>
+                        </div>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        document.getElementById('formNovaMidia').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const tipo = document.getElementById('tipoMidia').value;
+            const titulo = document.getElementById('tituloMidia').value;
+            const url = document.getElementById('urlMidia').value;
+            const duracao = document.getElementById('duracaoMidia').value;
+
+            try {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midias', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                    body: JSON.stringify({ tipo, titulo, url, duracao: tipo === 'imagem' ? duracao : 0 })
+                });
+                if(res.ok) {
+                    document.getElementById('formNovaMidia').reset();
+                    ajustarCamposForm('imagem');
+                    carregarPlaylist();
+                }
+            } catch(err) { alert("Erro ao salvar"); }
+        });
+
+        async function removerMidia(id) {
+            if(!confirm("Remover este item da programação da TV?")) return;
+            try {
+                await fetch(`https://frequencia-carminha.up.railway.app/api/midias/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'x-auth-token': token }
+                });
+                carregarPlaylist();
+            } catch(err) { console.error(err); }
+        }
+
+        carregarPlaylist();
+    </script>
+</body>
+</html>
