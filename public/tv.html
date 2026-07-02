@@ -2,76 +2,44 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Escolar - Escola Carminha</title>
     <style>
-        :root {
-            --bg-principal: #0f172a;
-            --bg-card: #1e293b;
-            --bg-item: #111827;
-            --texto-claro: #f8fafc;
-            --cor-ouro: #eab308;
-            --cor-prata: #cbd5e1;
-            --cor-bronze: #b45309;
-            --cor-sucesso: #4ade80;
-            --cor-alerta: #f87171;
-            --cor-azul: #38bdf8;
-        }
-        body { background-color: var(--bg-principal); color: var(--texto-claro); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        .resumo-discreto-topo { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 15px 40px; background: var(--bg-card); box-sizing: border-box; border-bottom: 1px solid #334155; font-size: 1.4rem; color: #94a3b8; }
-        .tv-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 40px; text-align: center; box-sizing: border-box; }
-        .slide { display: none; width: 100%; height: 100%; animation: fadeIn 0.8s ease-in-out forwards; }
-        .slide.ativo { display: flex; flex-direction: column; justify-content: center; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+        body { background: #0f172a; color: white; margin: 0; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
         
-        /* CONTAINER DE MÍDIAS */
-        .container-midia-dinamica { width: 100%; height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .titulo-midia-atual { font-size: 2rem; font-weight: bold; color: var(--cor-azul); margin-bottom: 15px; text-transform: uppercase; }
-
-        /* MODO VERTICAL (INSTAGRAM PADRÃO) */
+        /* Container Base */
         .instagram-tv-wrapper { width: 960px; height: 960px; display: flex; justify-content: center; align-items: center; }
-        .instagram-tv-wrapper iframe { width: 100%; height: 100%; border: none; border-radius: 12px; clip-path: inset(45px 0px 20px 0px); transform: scale(1.15); transform-origin: top center; }
-
-        /* MODO HORIZONTAL (16:9) */
+        .instagram-tv-wrapper iframe { width: 100%; height: 100%; border: none; border-radius: 12px; clip-path: inset(45px 0px 20px 0px); transform: scale(1.15); }
+        
+        /* Ajuste Horizontal */
         .instagram-tv-wrapper.horizontal { width: 1280px; height: 720px; }
         .instagram-tv-wrapper.horizontal iframe { clip-path: none; transform: scale(1.0); }
     </style>
 </head>
 <body>
-
-    <div class="resumo-discreto-topo">
-        <span id="txtDataAtual">📅 --/--/----</span>
-        <span>Mural Digital Escolar 📋</span>
-        <span id="mediaGeralEscola" style="color: var(--cor-azul);">0%</span>
-    </div>
-    
-    <div class="tv-container">
-        <div id="slideAviso" class="slide ativo">
-            <div class="container-midia-dinamica">
-                <div id="tituloMidiaPainel" class="titulo-midia-atual">Mural de Avisos</div>
-                <div id="wrapperMidiaDinamica" style="width: 100%; display: flex; justify-content: center; height: 100%; align-items: center;"></div>
-            </div>
-        </div>
-    </div>
+    <div id="wrapperMidiaDinamica"></div>
 
     <script>
-        // ... (restante do seu código JS aqui)
+        async function carregarPlaylist() {
+            const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist');
+            const playlist = await res.json();
+            exibirMidia(playlist[0]);
+        }
 
-        function renderizarMidia(midia) {
+        function exibirMidia(midia) {
             const wrapper = document.getElementById('wrapperMidiaDinamica');
-            // Supomos que o objeto midia tenha uma propriedade 'orientacao': 'vertical' ou 'horizontal'
             const ehHorizontal = midia.orientacao === 'horizontal';
-            const classe = ehHorizontal ? 'instagram-tv-wrapper horizontal' : 'instagram-tv-wrapper';
-
+            
             if (midia.tipo === 'instagram') {
                 wrapper.innerHTML = `
-                    <div class="${classe}">
+                    <div class="instagram-tv-wrapper ${ehHorizontal ? 'horizontal' : ''}">
                         <iframe src="${midia.url}" scrolling="no"></iframe>
                     </div>
                 `;
+            } else if (midia.tipo === 'video') {
+                wrapper.innerHTML = `<iframe src="${midia.url}" style="width: 1280px; height: 720px; border:none;"></iframe>`;
             }
-            // ... resto do renderizador
         }
+        carregarPlaylist();
     </script>
 </body>
 </html>
