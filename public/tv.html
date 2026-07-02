@@ -356,7 +356,7 @@
 
         <div id="slideAviso" class="slide">
             <div class="container-midia-dinamica">
-                <div id="tituloMidiaPainel" class="titulo-midia-atual">Avisos Escolares</div>
+                <div id="tituloMidiaPainel" class="titulo-midia-atual">Mural de Avisos</div>
                 <div id="wrapperMidiaDinamica" style="width: 100%; display: flex; justify-content: center; height: 100%;">
                     </div>
             </div>
@@ -374,22 +374,23 @@
         let indiceSlideAtual = 0;
         let timerRotacao; 
 
-        // Playlist carregada do servidor
         let playlistMídias = [];
         let indiceMidiaAtual = 0;
 
-        // Inicialização
-        carregarDadosPainel();
-        carregarPlaylistServidor();
+        // Execução inicial síncrona/assíncrona controlada
+        async function inicializarPainel() {
+            await carregarDadosPainel();
+            await carregarPlaylistServidor();
+            agendarProximoSlide(15);
+        }
 
-        // Atualizações em segundo plano (Dados e lista a cada 3 minutos)
-        setInterval(() => {
-            carregarDadosPainel();
-            carregarPlaylistServidor();
+        inicializarPainel();
+
+        // Atualizações periódicas em background
+        setInterval(async () => {
+            await carregarDadosPainel();
+            await carregarPlaylistServidor();
         }, 3 * 60 * 1000);
-
-        // Dispara o primeiro ciclo do cronômetro de rotação
-        agendarProximoSlide(15); 
 
         async function carregarPlaylistServidor() {
             try {
@@ -476,52 +477,57 @@
             });
         }
 
-        // LÓGICA RE RETENÇÃO E ROTAÇÃO DINÂMICA DE TEMPO
         function alternarSlides() {
             const slideAtualId = sequenciaSlides[indiceSlideAtual];
             document.getElementById(slideAtualId).classList.remove('ativo');
 
-            // Passa para o próximo índice
             indiceSlideAtual = (indiceSlideAtual + 1) % sequenciaSlides.length;
             const proximoSlideId = sequenciaSlides[indiceSlideAtual];
             
-            let tempoDePermanencia = 15; // Tempo padrão para os slides normais (15s)
+            let tempoDePermanencia = 15; 
 
             if (proximoSlideId === 'slideAviso') {
-                // Se não houver mídias cadastradas na playlist, renderiza o placeholder de avisos
-                if (playlistMídias.length === 0) {
-                    document.getElementById('tituloMidiaPainel').textContent = "Avisos Escolares 📢";
-                    document.getElementById('wrapperMidiaDinamica').innerHTML = `<img src="https://placehold.co/1200x600/1e293b/f8fafc?text=Mural+de+Avisos+Livre+📚" class="midia-imagem-renderizada">`;
+                const wrapper = document.getElementById('wrapperMidiaDinamica');
+                wrapper.innerHTML = ''; // Limpa completamente resíduos ou imagens estáticas antigas
+
+                if (!playlistMídias || playlistMídias.length === 0) {
+                    document.getElementById('tituloMidiaPainel').textContent = "Mural de Avisos 📢";
+                    wrapper.innerHTML = `<img src="https://placehold.co/1200x600/1e293b/f8fafc?text=Mural+de+Avisos+Livre+📚" class="midia-imagem-renderizada">`;
                     tempoDePermanencia = 15;
                 } else {
-                    // Carrega a mídia atual da nossa fila rotativa
                     const midia = playlistMídias[indiceMidiaAtual];
                     document.getElementById('tituloMidiaPainel').textContent = midia.titulo;
                     
-                    // CORREÇÃO CRUCIAL: Lê dinamicamente o tempo customizado vindo da API
                     tempoDePermanencia = parseInt(midia.tempoExibicao, 10) || 15;
 
                     if (midia.tipo === 'video' || midia.tipo === 'instagram') {
-                        document.getElementById('wrapperMidiaDinamica').innerHTML = `
+                        wrapper.innerHTML = `
                             <iframe src="${midia.url}" class="midia-frame-renderizado" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         `;
                     } else {
-                        document.getElementById('wrapperMidiaDinamica').innerHTML = `
+                        wrapper.innerHTML = `
                             <img src="${midia.url}" class="midia-imagem-renderizada" onerror="this.src='https://placehold.co/1200x600/1e293b/f8fafc?text=Erro+ao+carregar+imagem+📸'">
                         `;
                     }
 
-                    // Move o ponteiro para a próxima mídia da fila para a rodada seguinte
                     indiceMidiaAtual = (indiceMidiaAtual + 1) % playlistMídias.length;
                 }
             }
 
             document.getElementById(proximoSlideId).classList.add('ativo');
-
-            // Agenda a próxima transição usando o tempo variável calculado
             agendarProximoSlide(tempoDePermanencia);
         }
 
         function agendarProximoSlide(segundos) {
             clearTimeout(timerRotacao);
-          
+            timerRotacao = setTimeout(alternarSlides, segundos * 1000);
+        }
+
+        function mostrarPainelVazio() {
+            document.getElementById('podio1_nome').textContent = "Sem dados";
+            document.getElementById('mediaGeralEscola').textContent = '0%';
+            document.getElementById('podio1_foto').src = 'https://placehold.co/500x300/1e293b/f8fafc?text=Aguardando+Chamada+⏳';
+        }
+    </script>
+</body>
+</html>
