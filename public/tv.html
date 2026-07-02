@@ -51,11 +51,11 @@
         .midia-imagem-renderizada { max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 16px; }
         .titulo-midia-atual { font-size: 2rem; font-weight: bold; color: var(--cor-azul); margin-bottom: 15px; text-transform: uppercase; }
 
-        /* MÁSCARA COM CLIP-PATH OTIMIZADO PARA O RODAPÉ DO INSTAGRAM */
+        /* MULTIPLIQUEI AS PROPORÇÕES PARA DEIXAR A IMAGEM GIGANTE */
         .instagram-tv-wrapper {
             width: 100%;
-            max-width: 720px;
-            height: 720px;
+            max-width: 960px; /* Expandido de 720px para ocupar quase toda a tela vertical */
+            height: 780px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -68,10 +68,9 @@
             border: none;
             background: #000;
             border-radius: 12px;
-            /* Remove 60px do topo e arranca agressivamente 180px da base (likes/comentários) */
-            clip-path: inset(60px 0px 180px 0px);
-            /* Aplica zoom focado a partir do topo para estabilizar a imagem centralizada */
-            transform: scale(1.3); 
+            /* Recorte recalibrado milimetricamente para o novo tamanho expandido */
+            clip-path: inset(55px 0px 175px 0px);
+            transform: scale(1.35); 
             transform-origin: top center;
         }
     </style>
@@ -85,7 +84,6 @@
     </div>
     
     <div class="tv-container">
-        <!-- TELA 1 -->
         <div id="slideCampeao" class="slide ativo">
             <div class="podio-container">
                 <div class="podio-titulo">🏆 LÍDER EM ASSIDUIDADE HOJE</div>
@@ -104,7 +102,6 @@
             </div>
         </div>
 
-        <!-- TELA 2 -->
         <div id="slideTabela" class="slide">
             <h1 class="titulo-geral">📊 Classificação Completa</h1>
             <div class="bloco-ranking-unico">
@@ -115,7 +112,6 @@
             </div>
         </div>
 
-        <!-- TELA 3 -->
         <div id="slideAviso" class="slide">
             <div class="container-midia-dinamica">
                 <div id="tituloMidiaPainel" class="titulo-midia-atual">Mural de Avisos</div>
@@ -240,7 +236,7 @@
 
         function agendarProximoSlide(segundos) {
             clearTimeout(timerRotacao);
-            timerRotacao = setTimeout(alternarSlides, segundos * 1000);
+            timerRotacao = setTimeout(alternarSlides, seconds = segundos * 1000);
         }
     </script>
 </body>
