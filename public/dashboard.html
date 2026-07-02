@@ -28,7 +28,7 @@
             border: 1px solid #00000015;
         }
 
-        /* 🗂️ Painel de Histórico Organizado em Coluna */
+        /* 🗂️ Painel de Histórico Organizado por Mês */
         .painel-historico {
             background: #ffffff;
             border-radius: 8px;
@@ -45,17 +45,34 @@
             font-weight: bold;
         }
         
-        /* 🔥 Força a lista a ficar em formato de coluna vertical estruturada */
+        .container-scroll-historico {
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* 🔥 Estilo das Divisórias de Meses */
+        .grupo-mes-container {
+            margin-bottom: 15px;
+        }
+        .nome-mes-titulo {
+            font-size: 1.15rem;
+            color: #1e3a8a; /* Azul escuro destacado */
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 4px;
+            margin-top: 10px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
         .lista-historico-links {
             display: flex;
             flex-direction: column;
             gap: 6px;
-            max-height: 220px;
-            overflow-y: auto;
-            padding-right: 5px;
         }
         
-        /* Botões em formato de linha de tabela para clique fácil */
         .item-historico-btn {
             background: #f8fafc;
             color: #334155;
@@ -72,7 +89,7 @@
             transition: all 0.2s ease;
         }
         .item-historico-btn::before {
-            content: "📅  Chamada salva em: ";
+            content: "📅  Chamada realizada: ";
             font-weight: normal;
             color: #64748b;
             font-size: 0.85rem;
@@ -121,7 +138,7 @@
             
             <div class="painel-historico">
                 <h4 class="titulo-historico">Histórico de Chamadas Realizadas:</h4>
-                <div id="containerDatasConcluidas" class="lista-historico-links">
+                <div id="containerDatasConcluidas" class="container-scroll-historico">
                     <span class="txt-vazio">Selecione uma turma para carregar o histórico de chamadas.</span>
                 </div>
             </div>
@@ -162,6 +179,12 @@
 
         let alunosCarregados = [];
 
+        // Nomes dos meses para exibição elegante em letras maiores
+        const NOMES_MESES = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
         // 🏫 BUSCAR TURMAS DO BANCO DE DADOS
         async function carregarTurmasNoDashboard() {
             try {
@@ -179,7 +202,7 @@
             }
         }
 
-        // 📅 ATUALIZAR O PAINEL DE HISTÓRICO COM FORMATO CORRIGIDO
+        // 📅 ATUALIZAR E AGRUPAR O PAINEL DE HISTÓRICO POR MÊS
         async function atualizarPainelDatasDaTurma(turma) {
             const container = document.getElementById('containerDatasConcluidas');
             if (!turma) {
@@ -203,28 +226,59 @@
                     return;
                 }
 
+                // Agrupar datas por Chave "Mês / Ano"
+                const gruposPorMes = {};
+
                 datas.forEach(dataRaw => {
-                    // 🔥 CORREÇÃO CRÍTICA DA DATA: Isola rigorosamente os primeiros 10 caracteres (AAAA-MM-DD)
-                    // Isso elimina completamente o "T00:00:00.000Z" antes de montar a exibição do botão
                     const dataIso = dataRaw.substring(0, 10); 
-                    
                     const partes = dataIso.split('-');
-                    if (partes.length !== 3) return; // Ignora se o formato estiver corrompido
-                    
-                    const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`; // Monta DD/MM/AAAA
+                    if (partes.length !== 3) return;
 
-                    const btnData = document.createElement('button');
-                    btnData.className = 'item-historico-btn';
-                    btnData.type = 'button';
-                    btnData.innerHTML = `<span><strong>${dataFormatada}</strong></span> <span>➔</span>`;
+                    const ano = partes[0];
+                    const indiceMes = parseInt(partes[1], 10) - 1;
+                    const nomeMes = NOMES_MESES[indiceMes];
                     
-                    btnData.onclick = () => {
-                        document.getElementById('inputData').value = dataIso;
-                        carregarAlunos();
-                    };
+                    const chaveMes = `${nomeMes} de ${ano}`;
 
-                    container.appendChild(btnData);
+                    if (!gruposPorMes[chaveMes]) {
+                        gruposPorMes[chaveMes] = [];
+                    }
+                    gruposPorMes[chaveMes].push({ dataIso, partes });
                 });
+
+                // Renderizar os blocos separados por mês
+                for (const [mesAno, itens] of Object.entries(gruposPorMes)) {
+                    const grupoDiv = document.createElement('div');
+                    grupoDiv.className = 'grupo-mes-container';
+
+                    // Título em letras maiores para o mês
+                    const tituloMes = document.createElement('div');
+                    tituloMes.className = 'nome-mes-titulo';
+                    tituloMes.textContent = mesAno;
+                    grupoDiv.appendChild(tituloMes);
+
+                    const listaDiv = document.createElement('div');
+                    listaDiv.className = 'lista-historico-links';
+
+                    itens.forEach(item => {
+                        const dataFormatada = `${item.partes[2]}/${item.partes[1]}/${item.partes[0]}`;
+
+                        const btnData = document.createElement('button');
+                        btnData.className = 'item-historico-btn';
+                        btnData.type = 'button';
+                        btnData.innerHTML = `<span><strong>${dataFormatada}</strong></span> <span>➔</span>`;
+                        
+                        btnData.onclick = () => {
+                            document.getElementById('inputData').value = item.dataIso;
+                            carregarAlunos();
+                        };
+
+                        listaDiv.appendChild(btnData);
+                    });
+
+                    grupoDiv.appendChild(listaDiv);
+                    container.appendChild(grupoDiv);
+                }
 
             } catch (err) {
                 container.innerHTML = '<span class="txt-vazio" style="color:#d63031;">Erro ao processar histórico de chamadas.</span>';
@@ -239,7 +293,6 @@
             if (!turma) return alert('Por favor, selecione uma turma!');
             if (!dataSelecionada) return alert('Por favor, selecione uma data!');
 
-            // Normaliza para garantir o envio correto da data limpa para o histórico
             dataSelecionada = dataSelecionada.substring(0, 10);
 
             try {
@@ -247,8 +300,8 @@
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
-                if (!respuestaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
-                alunosCarregados = await respuestaAlunos.json();
+                if (!respostaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
+                alunosCarregados = await respostaAlunos.json();
 
                 const respuestaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
                     method: 'GET',
@@ -263,7 +316,7 @@
             }
         }
 
-        // 🎨 RENDERIZAR LISTA NA TELA COBRINDO O HISTÓRICO SALVO
+        // 🎨 RENDERIZAR LISTA NA TELA
         function renderizarLista(historicoSalvo = []) {
             const corpoTabela = document.getElementById('listaAlunosCorpo');
             const feedback = document.getElementById('msgFeedback');
@@ -298,7 +351,12 @@
                     aluno.motivo_falta = registroSalvo.motivo_falta;
                 } else {
                     aluno.houve_falta = false;
-                    aluno.motivo_falta = 'NENHUM';
+                    aluno.motivo_falta = 'DIRETA'; // Padrão caso mude para Falta posteriormente
+                }
+
+                // Se o motivo recuperado for "NENHUM" mas o aluno está com falta, força uma opção válida
+                if (aluno.houve_falta && aluno.motivo_falta === 'NENHUM') {
+                    aluno.motivo_falta = 'DIRETA';
                 }
 
                 const tr = document.createElement('tr');
@@ -312,7 +370,6 @@
                     </td>
                     <td>
                         <select id="motivo-${index}" ${!aluno.houve_falta ? 'disabled' : ''} onchange="mudarMotivo(${index}, this.value)">
-                            <option value="NENHUM" ${aluno.motivo_falta === 'NENHUM' ? 'selected' : ''}>Nenhum</option>
                             <option value="DIRETA" ${aluno.motivo_falta === 'DIRETA' ? 'selected' : ''}>Falta Direta</option>
                             <option value="JUSTIFICADA" ${aluno.motivo_falta === 'JUSTIFICADA' ? 'selected' : ''}>Justificada</option>
                             <option value="ATESTADO" ${aluno.motivo_falta === 'ATESTADO' ? 'selected' : ''}>Atestado Médico</option>
@@ -336,14 +393,13 @@
                 btnP.classList.add('active');
                 btnF.classList.remove('active');
                 selectMotivo.disabled = true;
-                selectMotivo.value = 'NENHUM';
                 alunosCarregados[index].houve_falta = false;
-                alunosCarregados[index].motivo_falta = 'NENHUM';
+                alunosCarregados[index].motivo_falta = 'NENHUM'; // Internamente continua NENHUM para presenças
             } else {
                 btnF.classList.add('active');
                 btnP.classList.remove('active');
                 selectMotivo.disabled = false;
-                selectMotivo.value = 'DIRETA';
+                selectMotivo.value = 'DIRETA'; // Seleciona automaticamente o primeiro motivo válido
                 alunosCarregados[index].houve_falta = true;
                 alunosCarregados[index].motivo_falta = 'DIRETA';
             }
