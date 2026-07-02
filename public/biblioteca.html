@@ -6,8 +6,9 @@
     <title>Central de Mídias e Biblioteca - Escola Carminha</title>
 </head>
 <body>
-    <header style="background: #1e293b; color: white; padding: 1rem;">
+    <header style="background: #1e293b; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
         <h2>Central de Mídias e Biblioteca 📚📺</h2>
+        <button onclick="window.location.href='dashboard.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.6rem 1rem; border-radius: 4px; font-weight: bold; cursor: pointer;">⬅️ Voltar ao Dashboard</button>
     </header>
 
     <main style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
@@ -17,23 +18,33 @@
             
             <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e2e8f0;">
                 <strong style="display: block; margin-bottom: 10px;">⏱️ Tempo das Telas Padrões:</strong>
-                <input type="number" id="tempoTelaCampeao" placeholder="Tempo Campeão" style="width: 45%; padding: 5px;">
-                <input type="number" id="tempoTelaTabela" placeholder="Tempo Tabela" style="width: 45%; padding: 5px;">
+                <input type="number" id="tempoTelaCampeao" placeholder="Tempo Campeão (s)" style="width: 45%; padding: 5px;">
+                <input type="number" id="tempoTelaTabela" placeholder="Tempo Tabela (s)" style="width: 45%; padding: 5px;">
                 <button onclick="salvarTemposPadrao()" style="width: 100%; margin-top: 10px; padding: 8px; background: #4f46e5; color: white; border: none; cursor: pointer;">💾 Salvar Tempos</button>
             </div>
 
-            <input type="text" id="midiaTitulo" placeholder="Título" style="width: 100%; margin-bottom: 10px; padding: 8px;">
-            <input type="text" id="midiaUrl" placeholder="Link da Mídia" style="width: 100%; margin-bottom: 10px; padding: 8px;">
-            <select id="midiaOrientacao" style="width: 100%; margin-bottom: 10px; padding: 8px;">
-                <option value="vertical">Vertical (Instagram Padrão)</option>
-                <option value="horizontal">Horizontal (16:9)</option>
-            </select>
-            <input type="number" id="midiaTempo" value="15" style="width: 100%; margin-bottom: 10px; padding: 8px;">
+            <input type="text" id="midiaTitulo" placeholder="Título do Conteúdo" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <input type="text" id="midiaUrl" placeholder="Link da Mídia (YouTube, Instagram ou Imagem)" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
             
-            <button onclick="adicionarMidia()" style="background: #22c55e; color: white; width: 100%; padding: 10px; border: none; cursor: pointer;">Adicionar à Playlist</button>
+            <div style="margin-bottom: 10px;">
+                <label style="font-weight: bold; font-size: 0.9rem;">Orientação:</label>
+                <select id="midiaOrientacao" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <option value="vertical">Vertical (Instagram Padrão)</option>
+                    <option value="horizontal">Horizontal (16:9)</option>
+                </select>
+            </div>
+            
+            <input type="number" id="midiaTempo" value="15" placeholder="Tempo de exibição (s)" style="width: 100%; margin-bottom: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            
+            <button onclick="adicionarMidia()" style="background: #22c55e; color: white; width: 100%; padding: 10px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">Adicionar à Playlist</button>
 
-            <h4 style="margin-top: 25px;">Lista de Reprodução Atual</h4>
+            <h4 style="margin-top: 25px; border-bottom: 2px solid #eee; padding-bottom: 5px;">Lista de Reprodução Atual</h4>
             <div id="listaPlaylist" style="max-height: 250px; overflow-y: auto;"></div>
+        </section>
+
+        <section style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3>📚 Biblioteca Digital Pedagógica</h3>
+            <p style="color: #64748b; font-size: 0.9rem;">Área para gestão de documentos e matrizes.</p>
         </section>
     </main>
 
@@ -47,7 +58,7 @@
         function salvarTemposPadrao() {
             localStorage.setItem('tempoCampeao', document.getElementById('tempoTelaCampeao').value);
             localStorage.setItem('tempoTabela', document.getElementById('tempoTelaTabela').value);
-            alert("Tempos salvos!");
+            alert("Tempos padrões salvos com sucesso!");
         }
 
         function detectarTipoEFormatar(url) {
@@ -71,9 +82,9 @@
             container.innerHTML = '';
             midias.forEach(item => {
                 container.innerHTML += `
-                    <div style="padding: 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between;">
+                    <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
                         <span>${item.titulo}</span>
-                        <button onclick="removerMidia('${item.id}')" style="background:red; color:white; border:none; cursor:pointer;">X</button>
+                        <button onclick="removerMidia('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px;">Excluir</button>
                     </div>`;
             });
         }
