@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middlewares/authMiddleware'); // Middleware unificado e correto
+const auth = require('../middlewares/authMiddleware');
 const Aluno = require('../models/Aluno');
 const Turma = require('../models/Turma');
 const Frequencia = require('../models/Frequencia');
@@ -114,7 +114,7 @@ router.post('/lancar', auth, async (req, res) => {
     }
 });
 
-// 🔍 Buscar histórico de chamada realizada em determinada data e turma
+// Buscar histórico de chamada realizada em determinada data e turma
 router.get('/historico/:turma/:data', auth, async (req, res) => {
     try {
         const { turma, data } = req.params;
@@ -125,7 +125,7 @@ router.get('/historico/:turma/:data', auth, async (req, res) => {
     }
 });
 
-// 📅 Buscar apenas as datas únicas que já possuem chamada para uma turma específica
+// Buscar apenas as datas únicas que já possuem chamada para uma turma específica
 router.get('/datas-concluidas/:turma', auth, async (req, res) => {
     try {
         const { turma } = req.params;
@@ -144,7 +144,7 @@ router.get('/datas-concluidas/:turma', auth, async (req, res) => {
     }
 });
 
-// 🗑️ NOVO: Deletar todos os registros de chamada de uma data e turma específicas
+// Deletar todos os registros de chamada de uma data e turma específicas
 router.delete('/deletar-chamada/:turma/:data', auth, async (req, res) => {
     try {
         const { turma, data } = req.params;
@@ -158,6 +158,53 @@ router.delete('/deletar-chamada/:turma/:data', auth, async (req, res) => {
         res.json({ mensagem: `🗑️ Chamada do dia ${data.split('-').reverse().join('/')} excluída com sucesso!` });
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao deletar histórico de frequência.', detalhes: error.message });
+    }
+});
+
+// Gerar relatório estatístico de uma turma filtrado por mês/ano
+router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
+    try {
+        const { turma, anoMes } = req.params;
+        
+        const alunos = await Aluno.find({ turma, ativo: true }).sort({ nome: 1 });
+        
+        const registros = await Frequencia.find({
+            turma,
+            data: { $regex: `^${anoMes}` }
+        });
+
+        const relatorio = alunos.map(aluno => {
+            const chamadasAluno = registros.filter(r => r.aluno_id === aluno._id.toString());
+            
+            const totalDias = chamadasAluno.length;
+            const totalFaltas = chamadasAluno.filter(r => r.houve_falta === true).length;
+            const totalPresencas = totalDias - totalFaltas;
+            
+            const percentualPresenca = totalDias > 0 
+                ? Math.round((totalPresencas / totalDias) * 100) 
+                : 100;
+
+            const motivos = { DIRETA: 0, JUSTIFICADA: 0, ATESTADO: 0, ONIBUS: 0 };
+            chamadasAluno.forEach(r => {
+                if (r.houve_falta && motivos[r.motivo_falta] !== undefined) {
+                    motivos[r.motivo_falta]++;
+                }
+            });
+
+            return {
+                aluno_id: aluno._id,
+                nome: aluno.nome,
+                totalDias,
+                totalPresencas,
+                totalFaltas,
+                percentualPresenca,
+                motivosDetails: motivos
+            };
+        });
+
+        res.json(relatorio);
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao gerar relatório.', detalhes: error.message });
     }
 });
 
