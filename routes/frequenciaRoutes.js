@@ -36,13 +36,13 @@ router.post('/turmas', auth, async (req, res) => {
     }
 });
 
-// Aktualizar foto da turma (Exige autenticação do professor)
+// Atualizar foto da turma (Exige autenticação do professor)
 router.put('/turmas/foto/:id', auth, async (req, res) => {
     try {
         const { fotoUrl } = req.body;
         const turma = await Turma.findByIdAndUpdate(req.params.id, { fotoUrl }, { new: true });
         if (!turma) return res.status(404).json({ erro: 'Turma não encontrada.' });
-        res.json({ mensagem: 'Foto da turma updated com sucesso! 📸', turma });
+        res.json({ mensagem: 'Foto da turma atualizada com sucesso! 📸', turma });
     } catch (error) {
         res.status(500).json({ erro: error.message });
     }
@@ -120,7 +120,7 @@ router.post('/lancar', auth, async (req, res) => {
         });
 
         await Promise.all(promessas);
-        res.json({ message: '✅ Chamada salva e atualizada com sucesso no banco!' });
+        res.json({ mensagem: '✅ Chamada salva e atualizada com sucesso no banco!' });
     } catch (error) {
         res.status(500).json({ erro: error.message });
     }
@@ -239,7 +239,7 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🏆🏆 RANKING DIÁRIO RETIFICADO (TV + DASHBOARD) 🏆🏆
+// 🏆🏆 RANKING DIÁRIO RETIFICADO (TV + DASHBOARD CORRIGIDO) 🏆🏆
 // ==========================================
 router.get('/ranking-diario/:data', async (req, res) => {
     try {
@@ -248,9 +248,9 @@ router.get('/ranking-diario/:data', async (req, res) => {
         const turmas = await Turma.find().sort({ nome: 1 });
         const registrosDia = await Frequencia.find({ data });
 
-        // 🔥 CRITICAL FIX: Se o dia ainda não tiver NENHUMA chamada feita no banco de dados,
-        // não retornamos mais o array vazio []. Em vez disso, montamos a lista inicial com 0% 
-        // para manter as fotos ativas e impedir o front-end do Dashboard de colapsar no catch.
+        // Mapeia todas as turmas cadastradas para computar dados assincronamente.
+        // Se o dia não possuir chamadas registradas (início de dia), criamos uma estrutura base estruturada,
+        // contendo as fotos e o aproveitamento inicial (100%), impedindo erros de mapeamento no Dashboard e na TV.
         const promessasRanking = turmas.map(async (turma) => {
             const totalAlunosTurma = await Aluno.countDocuments({ turma: turma.nome, ativo: true });
             
@@ -258,7 +258,6 @@ router.get('/ranking-diario/:data', async (req, res) => {
 
             const chamadasDaTurma = registrosDia.filter(r => r.turma === turma.nome);
 
-            // Caso não haja chamada feita para esta turma específica (ou para nenhuma no dia)
             if (chamadasDaTurma.length === 0) {
                 return {
                     turma: turma.nome,
@@ -266,13 +265,12 @@ router.get('/ranking-diario/:data', async (req, res) => {
                     faltasDiretas: 0,
                     totalFaltas: 0,
                     faltasJustificadas: 0,
-                    aproveitamento: 0,
-                    porcentagem: 0, 
-                    fotoUrl: turma.fotoUrl || '' // Envia a foto mesmo com o dia zerado
+                    aproveitamento: 100, 
+                    porcentagem: 100, 
+                    fotoUrl: turma.fotoUrl || '' 
                 };
             }
 
-            // Caso existam chamadas, computa as penalidades por faltas diretas
             const faltasPenalizadas = chamadasDaTurma.filter(r => {
                 if (r.houve_falta === true) {
                     const motivo = r.motivo_falta ? r.motivo_falta.toString().toUpperCase() : 'DIRETA';
@@ -309,6 +307,7 @@ router.get('/ranking-diario/:data', async (req, res) => {
 
         res.json(rankingOrdenado);
     } catch (error) {
+        console.error("Erro interno no Ranking Diário:", error);
         res.status(500).json({ erro: 'Erro interno ao computar ranking diário.', detalhes: error.message });
     }
 });
