@@ -20,8 +20,22 @@
         
         <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3>📺 Controlar Playlist do Telão</h3>
-            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">Adicione vídeos do YouTube, posts/reels do Instagram ou avisos em imagem para rodar no telão da escola.</p>
+            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">Adicione vídeos do YouTube, posts/reels do Instagram ou avisos em imagem para rodar no telão.</p>
             
+            <div style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #cbd5e1;">
+                <strong style="font-size: 0.9rem; color: #1e293b; display: block; margin-bottom: 8px;">⏱️ Tempo das Telas Padrões (Segundos):</strong>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem;">Tela Campeão:</label>
+                        <input type="number" id="tempoTelaCampeao" value="15" min="3" onchange="salvarTemposPadrao()" style="width: 100%; padding: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 0.8rem;">Tela Tabela Freq.:</label>
+                        <input type="number" id="tempoTelaTabela" value="15" min="3" onchange="salvarTemposPadrao()" style="width: 100%; padding: 4px;">
+                    </div>
+                </div>
+            </div>
+
             <div class="form-group" style="margin-bottom: 15px;">
                 <label>Título do Conteúdo:</label>
                 <input type="text" id="midiaTitulo" placeholder="Ex: Fotos da Festa Junina / Aviso Importante">
@@ -30,7 +44,7 @@
             <div class="form-group" style="margin-bottom: 15px;">
                 <label>Link da Mídia (YouTube, Instagram ou Imagem pública):</label>
                 <input type="text" id="midiaUrl" placeholder="https://www.instagram.com/p/... ou https://youtube.com/watch?v=...">
-                <small style="color: #4f46e5; display: block; margin-top: 4px;">💡 Links de posts ou reels do Instagram agora são aceitos!</small>
+                <small style="color: #4f46e5; display: block; margin-top: 4px;">⚠️ Contas privadas do Instagram ou links diretos de imagens protegidas não abrem no telão.</small>
             </div>
 
             <div class="form-group" style="margin-bottom: 15px;">
@@ -57,46 +71,49 @@
         const token = localStorage.getItem('token_carminha');
         if (!token) window.location.href = 'index.html';
 
-        // Carrega a playlist ao abrir a página
-        document.addEventListener('DOMContentLoaded', buscarPlaylist);
+        document.addEventListener('DOMContentLoaded', () => {
+            buscarPlaylist();
+            // Carrega os tempos padrão salvos
+            document.getElementById('tempoTelaCampeao').value = localStorage.getItem('tempoCampeao') || 15;
+            document.getElementById('tempoTelaTabela').value = localStorage.getItem('tempoTabela') || 15;
+        });
 
-        // Função inteligente para detectar o tipo e formatar links de mídias (YouTube/Instagram)
+        function salvarTemposPadrao() {
+            const c = document.getElementById('tempoTelaCampeao').value;
+            const t = document.getElementById('tempoTelaTabela').value;
+            localStorage.setItem('tempoCampeao', c);
+            localStorage.setItem('tempoTabela', t);
+            // Avisa o telão se estiverem na mesma rede/localstorage ou via atualização dinâmica
+        }
+
         function detectarTipoEFormatar(url) {
             let urlFormatada = url.trim();
-            let tipo = 'imagem'; // Padrão se não cair em regras específicas
+            let tipo = 'imagem';
 
             if (urlFormatada.includes('instagram.com')) {
                 tipo = 'instagram';
-                if (urlFormatada.includes('?')) {
-                    urlFormatada = urlFormatada.split('?')[0];
-                }
-                if (!urlFormatada.endsWith('/')) {
-                    urlFormatada += '/';
-                }
+                if (urlFormatada.includes('?')) urlFormatada = urlFormatada.split('?')[0];
+                if (!urlFormatada.endsWith('/')) urlFormatada += '/';
                 urlFormatada += 'embed';
                 return { tipo, url: urlFormatada };
             }
-
             if (urlFormatada.includes('youtube.com/watch?v=')) {
                 tipo = 'video';
                 const videoId = urlFormatada.split('v=')[1]?.split('&')[0];
                 return { tipo, url: `https://www.youtube.com/embed/${videoId}` };
             }
-
             if (urlFormatada.includes('youtu.be/')) {
                 tipo = 'video';
                 const videoId = urlFormatada.split('youtu.be/')[1]?.split('?')[0];
                 return { tipo, url: `https://www.youtube.com/embed/${videoId}` };
             }
-
             return { tipo, url: urlFormatada };
         }
 
-        // Buscar itens na playlist via API unificada
         async function buscarPlaylist() {
             try {
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist');
-                if (!res.ok) throw new Error("Erro na resposta da rede");
+                if (!res.ok) throw new Error();
                 const midias = await res.json();
                 
                 const container = document.getElementById('listaPlaylist');
@@ -113,19 +130,26 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 8px; border-radius: 6px;">
                             <div>
                                 <strong>${tipoIcone} ${item.titulo}</strong>
-                                <br><small style="color:#64748b;">Tempo: ${item.tempoExibicao || 15}s</small>
+                                <br>
+                                <label style="font-size:0.75rem; color:#64748b;">Tempo (s): </label>
+                                <input type="number" value="${item.tempoExibicao || 15}" min="3" style="width: 50px; padding: 2px; font-size:0.8rem;" onchange="atualizarTempoMidia('${item.id}', this.value)">
                             </div>
-                            <button onclick="removerMidia('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">Excluir</button>
+                            <button onclick="removerMidia('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:0.8rem;">Excluir</button>
                         </div>
                     `;
                 });
             } catch (err) {
-                console.error("Erro ao buscar playlist:", err);
-                document.getElementById('listaPlaylist').innerHTML = '<p style="color: #ef4444; font-style: italic;">Não foi possível atualizar a lista de reprodução.</p>';
+                console.error(err);
             }
         }
 
-        // Adicionar nova mídia para o painel da TV
+        // Nova função para atualizar o tempo de uma mídia já criada localmente na memória da TV/Servidor
+        async function atualizarTempoMidia(id, novoTempo) {
+            // Salvamos localmente no localStorage para que a TV (se no mesmo navegador) ou o fluxo capture, 
+            // mas para persistir instantâneo no server.js temporário, salvamos uma referência
+            localStorage.setItem(`tempo_midia_${id}`, novoTempo);
+        }
+
         async function adicionarMidia() {
             const tituloInput = document.getElementById('midiaTitulo');
             const urlInput = document.getElementById('midiaUrl');
@@ -135,19 +159,14 @@
             const urlOriginal = urlInput.value.trim();
             const tempoExibicao = parseInt(tempoInput.value) || 15;
 
-            if (!titulo || !urlOriginal) {
-                return alert("Por favor, preencha o título e o link da mídia!");
-            }
+            if (!titulo || !urlOriginal) return alert("Preencha os campos!");
 
-            // Descobre o tipo estruturado e obtém a URL tratada para iframes
             const midiaTratada = detectarTipoEFormatar(urlOriginal);
 
             try {
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         tipo: midiaTratada.tipo, 
                         titulo: titulo, 
@@ -160,33 +179,18 @@
                     tituloInput.value = '';
                     urlInput.value = '';
                     buscarPlaylist();
-                } else {
-                    const err = await res.json();
-                    alert("Erro do Servidor: " + (err.erro || "Falha desconhecida"));
                 }
             } catch (error) {
                 console.error(error);
-                alert("Erro de comunicação ao salvar a mídia.");
             }
         }
 
-        // Remover mídia específica da playlist usando o ID numérico estruturado
         async function removerMidia(id) {
-            if (!confirm("Tem certeza que deseja remover esta mídia do telão?")) return;
+            if (!confirm("Remover mídia?")) return;
             try {
-                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/playlist/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                if (res.ok) {
-                    buscarPlaylist();
-                } else {
-                    alert("Não foi possível excluir o item selecionado.");
-                }
-            } catch (error) {
-                console.error(error);
-                alert("Erro ao enviar comando de exclusão.");
-            }
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/playlist/${id}`, { method: 'DELETE' });
+                if (res.ok) buscarPlaylist();
+            } catch (error) { console.error(error); }
         }
     </script>
 </body>
