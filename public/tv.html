@@ -45,29 +45,34 @@
         .ranking-item.bronze { border-left-color: var(--cor-bronze); }
         .ranking-item .posicao { background: #334155; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 12px; }
         
-        /* CONTAINER DE MÍDIAS */
+        /* CONTAINER DE MÍDIAS COLETIVO */
         .container-midia-dinamica { width: 100%; height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .midia-frame-renderizado { width: 100%; max-width: 1200px; height: 100%; border: none; border-radius: 16px; background: #000; }
         .midia-imagem-renderizada { max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 16px; }
         .titulo-midia-atual { font-size: 2rem; font-weight: bold; color: var(--cor-azul); margin-bottom: 15px; text-transform: uppercase; }
 
-        /* MÁSCARA EXCLUSIVA PARA CORTAR BORDAS DO INSTAGRAM */
-        .instagram-mask-wrapper {
-            width: 650px;
-            height: 650px;
-            overflow: hidden;
-            position: relative;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            background: #000;
-        }
-        .instagram-mask-wrapper iframe {
-            position: absolute;
-            top: -55px; /* Empurra o topo do Instagram (perfil/botão seguir) para fora da visão */
-            left: 0;
+        /* MÁSCARA COM CLIP-PATH OTIMIZADO PARA O RODAPÉ DO INSTAGRAM */
+        .instagram-tv-wrapper {
             width: 100%;
-            height: 760px; /* Expande para baixo ocultando a barra de likes/comentários */
+            max-width: 720px;
+            height: 720px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+        }
+        
+        .instagram-tv-wrapper iframe {
+            width: 100%;
+            height: 100%;
             border: none;
+            background: #000;
+            border-radius: 12px;
+            /* Remove 60px do topo e arranca agressivamente 180px da base (likes/comentários) */
+            clip-path: inset(60px 0px 180px 0px);
+            /* Aplica zoom focado a partir do topo para estabilizar a imagem centralizada */
+            transform: scale(1.3); 
+            transform-origin: top center;
         }
     </style>
 </head>
@@ -80,6 +85,7 @@
     </div>
     
     <div class="tv-container">
+        <!-- TELA 1 -->
         <div id="slideCampeao" class="slide ativo">
             <div class="podio-container">
                 <div class="podio-titulo">🏆 LÍDER EM ASSIDUIDADE HOJE</div>
@@ -98,6 +104,7 @@
             </div>
         </div>
 
+        <!-- TELA 2 -->
         <div id="slideTabela" class="slide">
             <h1 class="titulo-geral">📊 Classificação Completa</h1>
             <div class="bloco-ranking-unico">
@@ -108,6 +115,7 @@
             </div>
         </div>
 
+        <!-- TELA 3 -->
         <div id="slideAviso" class="slide">
             <div class="container-midia-dinamica">
                 <div id="tituloMidiaPainel" class="titulo-midia-atual">Mural de Avisos</div>
@@ -212,9 +220,8 @@
                     tempoDePermanencia = parseInt(tempoAlterado, 10) || parseInt(midia.tempoExibicao, 10) || 15;
 
                     if (midia.tipo === 'instagram') {
-                        // Aplica o contêiner de máscara cortadora estrito para focar só na imagem
                         wrapper.innerHTML = `
-                            <div class="instagram-mask-wrapper">
+                            <div class="instagram-tv-wrapper">
                                 <iframe src="${midia.url}" scrolling="no"></iframe>
                             </div>
                         `;
