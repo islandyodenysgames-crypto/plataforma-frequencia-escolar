@@ -1,19 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/auth'); // Certifique-se de que o caminho do seu middleware está correto
+const auth = require('../middlewares/authMiddleware'); // Middleware unificado e correto
 const Aluno = require('../models/Aluno');
 const Turma = require('../models/Turma');
 const Frequencia = require('../models/Frequencia');
 
+// ==========================================
 // 🏫 ROTAS DE TURMAS
+// ==========================================
 
 // Buscar todas as turmas
 router.get('/turmas', auth, async (req, res) => {
     try {
         const turmas = await Turma.find().sort({ nome: 1 });
         res.json(turmas);
-    } catch (err) {
-        res.status(500).json({ erro: 'Erro ao buscar turmas.' });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao buscar turmas.', detalhes: error.message });
     }
 });
 
@@ -28,32 +30,34 @@ router.post('/turmas', auth, async (req, res) => {
 
         const novaTurma = new Turma({ nome });
         await novaTurma.save();
-        res.status(201).json(novaTurma);
-    } catch (err) {
-        res.status(500).json({ erro: 'Erro ao salvar turma.' });
+        res.status(201).json({ mensagem: 'Turma cadastrada com sucesso! 🏫', turma: novaTurma });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao cadastrar turma.', detalhes: error.message });
     }
 });
 
 // Deletar turma
 router.delete('/turmas/:id', auth, async (req, res) => {
     try {
-        await Turma.findByIdAndDelete(req.params.id);
-        res.json({ mensagem: 'Turma removida com sucesso.' });
-    } catch (err) {
-        res.status(500).json({ erro: 'Erro ao deletar turma.' });
+        const turmaDeletada = await Turma.findByIdAndDelete(req.params.id);
+        if (!turmaDeletada) return res.status(404).json({ erro: 'Turma não encontrada.' });
+        res.json({ mensagem: 'Turma removida com sucesso! 🗑️' });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao deletar turma.', detalhes: error.message });
     }
 });
 
-
+// ==========================================
 // 🎒 ROTAS DE ALUNOS
+// ==========================================
 
 // Buscar alunos ativos de uma turma específica
 router.get('/alunos/:turma', auth, async (req, res) => {
     try {
         const alunos = await Aluno.find({ turma: req.params.turma, ativo: true }).sort({ nome: 1 });
         res.json(alunos);
-    } catch (err) {
-        res.status(500).json({ erro: 'Erro ao buscar alunos.' });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao buscar alunos.', detalhes: error.message });
     }
 });
 
@@ -65,36 +69,37 @@ router.post('/alunos', auth, async (req, res) => {
 
         const novoAluno = new Aluno({ nome, turma, ativo: true });
         await novoAluno.save();
-        res.status(201).json(novoAluno);
-    } catch (err) {
-        res.status(500).json({ erro: 'Erro ao cadastrar aluno.' });
+        res.status(201).json({ mensagem: 'Aluno cadastrado com sucesso! 🎒', aluno: novoAluno });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao cadastrar aluno.', detalhes: error.message });
     }
 });
 
-// Atualizar dados do aluno (Transferência ou Remoção/Desativação)
+// Atualizar dados do aluno (Transferência, Edição ou Desativação)
 router.put('/alunos/:id', auth, async (req, res) => {
     try {
         const dadosAtualizados = req.body;
         const aluno = await Aluno.findByIdAndUpdate(req.params.id, dadosAtualizados, { new: true });
         if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado.' });
-        res.json(aluno);
-    } catch (err) {
-        res.status(500).json({ erro: 'Erro ao atualizar dados do aluno.' });
+        res.json({ mensagem: 'Aluno atualizado com sucesso! 🔄', aluno });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao atualizar dados do aluno.', detalhes: error.message });
     }
 });
 
+// ==========================================
+// 🚀 ROTAS DE LANÇAMENTO E HISTÓRICO DE FREQUÊNCIA
+// ==========================================
 
-// 🚀 ROTAS DE LANÇAMENTO DE FREQUÊNCIA
-
-// Lançar ou atualizar chamada no banco (sobrescreve se já existir para o mesmo aluno na mesma data)
+// Lançar ou atualizar chamada no banco (sobrescreve registros existentes na mesma data/aluno através do upsert)
 router.post('/lancar', auth, async (req, res) => {
     try {
         const { listaFrequencia } = req.body;
-        if (!listaFrequencia || !Array.isArray(listaFrequencia)) {
-            return res.status(400).json({ erro: 'Dados inválidos ou lista vazia.' });
+        if (!listaFrequencia || !Array.isArray(listaFrequencia) || listaFrequencia.length === 0) {
+            return res.status(400).json({ erro: 'Dados inválidos ou lista de frequência vazia.' });
         }
 
-        // Executa uma operação de atualização/inserção (upsert) para cada aluno da lista
+        // Executa uma operação de atualização/inserção (upsert) individual para cada aluno da lista
         const promessas = listaFrequencia.map(registro => {
             return Frequencia.findOneAndUpdate(
                 { aluno_id: registro.aluno_id, data: registro.data },
@@ -110,7 +115,7 @@ router.post('/lancar', auth, async (req, res) => {
     }
 });
 
-// 🔍 NOVO: Buscar histórico de chamada realizada em determinada data e turma
+// 🔍 Buscar histórico de chamada realizada em determinada data e turma
 router.get('/historico/:turma/:data', auth, async (req, res) => {
     try {
         const { turma, data } = req.params;
