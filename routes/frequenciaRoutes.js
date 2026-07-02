@@ -91,7 +91,7 @@ router.put('/alunos/:id', auth, async (req, res) => {
 // 🚀 ROTAS DE LANÇAMENTO E HISTÓRICO DE FREQUÊNCIA
 // ==========================================
 
-// Lançar ou atualizar chamada no banco (sobrescreve registros existentes na mesma data/aluno através do upsert)
+// Lançar ou atualizar chamada no banco
 router.post('/lancar', auth, async (req, res) => {
     try {
         const { listaFrequencia } = req.body;
@@ -99,7 +99,6 @@ router.post('/lancar', auth, async (req, res) => {
             return res.status(400).json({ erro: 'Dados inválidos ou lista de frequência vazia.' });
         }
 
-        // Executa uma operação de atualização/inserção (upsert) individual para cada aluno da lista
         const promessas = listaFrequencia.map(registro => {
             return Frequencia.findOneAndUpdate(
                 { aluno_id: registro.aluno_id, data: registro.data },
@@ -119,8 +118,6 @@ router.post('/lancar', auth, async (req, res) => {
 router.get('/historico/:turma/:data', auth, async (req, res) => {
     try {
         const { turma, data } = req.params;
-
-        // Procura todos os registros correspondentes à turma e data informadas
         const registros = await Frequencia.find({ turma, data });
         res.json(registros);
     } catch (error) {
@@ -128,27 +125,39 @@ router.get('/historico/:turma/:data', auth, async (req, res) => {
     }
 });
 
-// 📅 Buscar apenas as datas únicas que já possuem chamada para uma turma específica (Tratada contra ISO-Fuso-Horário)
+// 📅 Buscar apenas as datas únicas que já possuem chamada para uma turma específica
 router.get('/datas-concluidas/:turma', auth, async (req, res) => {
     try {
         const { turma } = req.params;
-
-        // Busca todas as frequências daquela turma trazendo exclusivamente o campo data
         const registros = await Frequencia.find({ turma }, 'data');
         
-        // Limpa e formata as datas para o padrão estável AAAA-MM-DD
         const datasTratadas = registros.map(reg => {
             if (!reg.data) return null;
             const dataString = reg.data instanceof Date ? reg.data.toISOString() : String(reg.data);
-            return dataString.split('T')[0]; // Isola apenas a parte da data
+            return dataString.split('T')[0];
         }).filter(Boolean);
 
-        // Remove duplicatas e organiza as datas de forma decrescente (mais recente primeiro)
         const datasUnicas = [...new Set(datasTratadas)].sort((a, b) => new Date(b) - new Date(a));
-
         res.json(datasUnicas);
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao buscar datas concluídas.', detalhes: error.message });
+    }
+});
+
+// 🗑️ NOVO: Deletar todos os registros de chamada de uma data e turma específicas
+router.delete('/deletar-chamada/:turma/:data', auth, async (req, res) => {
+    try {
+        const { turma, data } = req.params;
+        
+        const resultado = await Frequencia.deleteMany({ turma, data });
+        
+        if (resultado.deletedCount === 0) {
+            return res.status(404).json({ erro: 'Nenhum registro encontrado para exclusão.' });
+        }
+        
+        res.json({ mensagem: `🗑️ Chamada do dia ${data.split('-').reverse().join('/')} excluída com sucesso!` });
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao deletar histórico de frequência.', detalhes: error.message });
     }
 });
 
