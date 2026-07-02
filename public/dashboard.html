@@ -156,6 +156,32 @@
             font-style: italic;
             padding: 12px 0;
         }
+
+        /* 🔘 Estilização dos botões de Presença e Falta na Tabela */
+        .btn-toggle-group {
+            display: flex;
+            gap: 4px;
+        }
+        .btn-presenca, .btn-falta {
+            padding: 6px 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            background: #f1f5f9;
+            color: #64748b;
+            transition: all 0.15s ease;
+        }
+        .btn-presenca.active {
+            background-color: #27ae60;
+            color: white;
+            border-color: #219653;
+        }
+        .btn-falta.active {
+            background-color: #e63946;
+            color: white;
+            border-color: #c92a3a;
+        }
     </style>
 </head>
 <body>
@@ -384,7 +410,6 @@
 
             dataSelecionada = dataSelecionada.substring(0, 10);
 
-            // Garante a exibição imediata da data antes mesmo do término da requisição HTTP
             const partesData = dataSelecionada.split('-');
             const dataBr = `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
             document.getElementById('badgeDataAtiva').innerHTML = `⚠️ Alterando chamadas do dia: <span style="color: #c43e00; font-size: 1.4rem; font-weight: 900; text-decoration: underline;">${dataBr}</span>`;
@@ -499,7 +524,7 @@
         }
 
         function mudarMotivo(index, valor) {
-            alunosCarregados[index].motivo_falta = valor;
+            canvas = alunosCarregados[index].motivo_falta = valor;
         }
 
         // 🚀 ENVIAR CHAMADA COMPLETA PRO BANCO
