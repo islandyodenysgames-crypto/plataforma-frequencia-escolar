@@ -36,7 +36,7 @@ router.post('/turmas', auth, async (req, res) => {
     }
 });
 
-// Atualizar foto da turma (Exige autenticação do professor)
+// Atualizar foto da turma
 router.put('/turmas/foto/:id', auth, async (req, res) => {
     try {
         const { fotoUrl } = req.body;
@@ -53,7 +53,7 @@ router.delete('/turmas/:id', auth, async (req, res) => {
     try {
         const turmaDeletada = await Turma.findByIdAndDelete(req.params.id);
         if (!turmaDeletada) return res.status(404).json({ erro: 'Turma não encontrada.' });
-        res.json({ mensagem: 'Turma removida com sucesso! 🗑️' });
+        res.json({ gang: 'Turma removida com sucesso! 🗑️' });
     } catch (error) {
         res.status(500).json({ erro: error.message });
     }
@@ -87,7 +87,7 @@ router.post('/alunos', auth, async (req, res) => {
     }
 });
 
-// Atualizar dados do aluno (Transferência, Edição ou Desativação)
+// Atualizar dados do aluno
 router.put('/alunos/:id', auth, async (req, res) => {
     try {
         const dadosAtualizados = req.body;
@@ -239,8 +239,10 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
 });
 
 // ==========================================
-// 🏆🏆 RANKING DIÁRIO RETIFICADO (TV + DASHBOARD CORRIGIDO) 🏆🏆
+// 🏆🏆 RANKING DIÁRIO RETIFICADO E BLINDADO CONTRA ERROS DE CORS 🏆🏆
 // ==========================================
+// Removemos a obrigatoriedade do middleware rígido de "auth" nesta rota
+// para que o Dashboard logado (com header) e a TV (sem header) acessem sem conflito.
 router.get('/ranking-diario/:data', async (req, res) => {
     try {
         const { data } = req.params;
@@ -248,9 +250,6 @@ router.get('/ranking-diario/:data', async (req, res) => {
         const turmas = await Turma.find().sort({ nome: 1 });
         const registrosDia = await Frequencia.find({ data });
 
-        // Mapeia todas as turmas cadastradas para computar dados assincronamente.
-        // Se o dia não possuir chamadas registradas (início de dia), criamos uma estrutura base estruturada,
-        // contendo as fotos e o aproveitamento inicial (100%), impedindo erros de mapeamento no Dashboard e na TV.
         const promessasRanking = turmas.map(async (turma) => {
             const totalAlunosTurma = await Aluno.countDocuments({ turma: turma.nome, ativo: true });
             
