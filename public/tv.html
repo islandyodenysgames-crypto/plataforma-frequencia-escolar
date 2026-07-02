@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Escolar - Escola Carminha</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Design específico para TV (Dark Mode de Alta Visibilidade) */
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Evita barras de rolagem na TV */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tv-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        /* Animação suave para a transição dos slides */
+        .slide {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            animation: fadeIn 1s ease-in-out forwards;
+        }
+
+        .slide.ativo {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Estilos da Tela A: Dados Globais */
+        .numero-gigante {
+            font-size: 10rem;
+            font-weight: 900;
+            margin: 20px 0;
+            line-height: 1;
+            text-shadow: 0 0 30px rgba(255,255,255,0.1);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 15px 40px;
+            font-size: 2rem;
+            font-weight: bold;
+            border-radius: 50px;
+            margin-bottom: 30px;
+        }
+
+        .sub-dados {
+            display: flex;
+            justify-content: center;
+            gap: 60px;
+            margin-top: 40px;
+        }
+
+        .dado-card {
+            background: #1e293b;
+            padding: 25px 50px;
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+
+        .dado-card h4 { margin: 0; color: #94a3b8; font-size: 1.5rem; }
+        .dado-card p { margin: 10px 0 0 0; font-size: 3rem; font-weight: bold; color: #38bdf8; }
+
+        /* Estilos da Tela B: Ranking */
+        .ranking-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            width: 100%;
+            margin-top: 30px;
+        }
+
+        .coluna-ranking {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+            text-align: left;
+        }
+
+        .coluna-ranking h3 {
+            margin-top: 0;
+            font-size: 2.2rem;
+            border-bottom: 3px solid #334155;
+            padding-bottom: 15px;
+        }
+
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 20px;
+            background: #111827;
+            margin-bottom: 12px;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .ranking-item .posicao {
+            background: #38bdf8;
+            color: #0f172a;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin-right: 15px;
+            font-size: 1.4rem;
+        }
+
+        /* Cores dinâmicas para o status */
+        .cor-excelente { color: #4ade80; }
+        .bg-excelente { background-color: #166534; color: #4ade80; }
+        
+        .cor-alerta { color: #facc15; }
+        .bg-alerta { background-color: #713f12; color: #facc15; }
+        
+        .cor-critico { color: #f87171; }
+        .bg-critico { background-color: #991b1b; color: #f87171; }
+    </style>
+</head>
+<body>
+
+    <div class="tv-container">
+        
+        <div id="slideGlobal" class="slide ativo">
+            <h1 style="font-size: 3rem; color: #94a3b8; margin: 0;">Frequência Escolar Hoje 📅</h1>
+            <div id="txtDataAtual" style="font-size: 1.8rem; color: #64748b; margin-top: 5px;">--/--/----</div>
+            
+            <div id="numPercentualEscola" class="numero-gigante cor-excelente">0%</div>
+            <div id="badgeStatus" class="status-badge bg-excelente">Excelente</div>
+
+            <div class="sub-dados">
+                <div class="dado-card">
+                    <h4>Alunos Presentes</h4>
+                    <p id="numPresentes">0</p>
+                </div>
+                <div class="dado-card">
+                    <h4>Total Matrículas</h4>
+                    <p id="numTotalAlunos" style="color: #cbd5e1;">0</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="slideRanking" class="slide">
+            <h1 style="font-size: 3.2rem; margin: 0; color: #f8fafc;">🏆 Ranking de Assiduidade das Turmas</h1>
+            <p style="color: #94a3b8; font-size: 1.4rem; margin-bottom: 20px;">Cálculo oficial deduzindo faltas abonadas (Atestados, Ônibus e Justificadas)</p>
+            
+            <div class="ranking-grid">
+                <div class="coluna-ranking" style="border-top: 6px solid #4ade80;">
+                    <h3 style="color: #4ade80;">⭐ Top 5 Turmas</h3>
+                    <div id="listaTop5">
+                        </div>
+                </div>
+
+                <div class="coluna-ranking" style="border-top: 6px solid #f87171;">
+                    <h3 style="color: #f87171;">⚠️ Atenção</h3>
+                    <div id="listaZ4">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Formata a data de hoje para o padrão ISO local (AAAA-MM-DD)
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+        const dataFormatada = `${ano}-${mes}-${dia}`;
+
+        // Exibe a data amigável na tela
+        document.getElementById('txtDataAtual').textContent = hoje.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Inicializa a busca de dados
+        carregarDadosPainel();
+
+        // Faz o Painel atualizar sozinho a cada 5 minutos buscando dados novos do banco
+        setInterval(carregarDadosPainel, 5 * 60 * 1000);
+
+        // Controla o slideshow automático (Alterna telas a cada 15 segundos)
+        setInterval(alternarSlides, 15 * 1000);
+
+        async function carregarDadosPainel() {
+            try {
+                // Consome a nova rota pública do ranking criada no back-end
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/ranking-diario/${dataFormatada}`);
+                if (!res.ok) throw new Error();
+                const dados = await res.json();
+
+                if (dados.length === 0) {
+                    mostrarPainelVazio();
+                    return;
+                }
+
+                processarDadosGlobais(dados);
+                renderizarRanking(dados);
+
+            } catch (err) {
+                console.error("Erro ao alimentar a TV da escola:", err);
+            }
+        }
+
+        function processarDadosGlobais(dados) {
+            let somaAproveitamento = 0;
+            let totalAlunosEscola = 0;
+            let totalFaltasDiretas = 0;
+
+            dados.forEach(t => {
+                somaAproveitamento += t.aproveitamento;
+                totalAlunosEscola += t.totalAlunos;
+                totalFaltasDiretas += t.faltasDiretas;
+            });
+
+            // Média geral da escola baseada no aproveitamento das turmas
+            const mediaEscola = Math.round(somaAproveitamento / dados.length);
+            const totalPresentesEscola = totalAlunosEscola - totalFaltasDiretas;
+
+            // Altera elementos da Tela A
+            const elementoPercentual = document.getElementById('numPercentualEscola');
+            const elementoBadge = document.getElementById('badgeStatus');
+
+            elementoPercentual.textContent = `${mediaEscola}%`;
+            document.getElementById('numPresentes').textContent = totalPresentesEscola;
+            document.getElementById('numTotalAlunos').textContent = totalAlunosEscola;
+
+            // Ajusta cores baseadas no desempenho
+            if (mediaEscola >= 90) {
+                elementoPercentual.className = "numero-gigante cor-excelente";
+                elementoBadge.className = "status-badge bg-excelente";
+                elementoBadge.textContent = "Excelente";
+            } else if (mediaEscola >= 80) {
+                elementoPercentual.className = "numero-gigante cor-alerta";
+                elementoBadge.className = "status-badge bg-alerta";
+                elementoBadge.textContent = "Atenção";
+            } else {
+                elementoPercentual.className = "numero-gigante cor-critico";
+                elementoBadge.className = "status-badge bg-critico";
+                elementoBadge.textContent = "Crítico";
+            }
+        }
+
+        function renderizarRanking(dados) {
+            const listaTop5 = document.getElementById('listaTop5');
+            const listaZ4 = document.getElementById('listaZ4');
+
+            listaTop5.innerHTML = '';
+            listaZ4.innerHTML = '';
+
+            // Copia a lista para separar os blocos
+            const melhores = [...dados].slice(0, 5);
+            // Pega as piores turmas (se houver mais de 5 turmas cadastradas)
+            const piores = dados.length > 5 ? [...dados].slice(-4).reverse() : [];
+
+            // Renderiza o Top 5
+            melhores.forEach((item, index) => {
+                listaTop5.innerHTML += `
+                    <div class="ranking-item">
+                        <div style="display:flex; align-items:center;">
+                            <span class="posicao" style="background:#4ade80;">${index + 1}º</span>
+                            <span>${item.turma}</span>
+                        </div>
+                        <span class="cor-excelente">${item.aproveitamento}%</span>
+                    </div>
+                `;
+            });
+
+            // Renderiza o grupo de atenção (Z4)
+            if (piores.length > 0) {
+                piores.forEach((item, index) => {
+                    listaZ4.innerHTML += `
+                        <div class="ranking-item">
+                            <div style="display:flex; align-items:center;">
+                                <span class="posicao" style="background:#f87171;">⚠️</span>
+                                <span>${item.turma}</span>
+                            </div>
+                            <span class="cor-critico">${item.aproveitamento}%</span>
+                        </div>
+                    `;
+                });
+            } else {
+                listaZ4.innerHTML = `<div style="font-size:1.5rem; color:#64748b; text-align:center; margin-top:40px; font-style:italic;">Todas as turmas em nível seguro! 🎉</div>`;
+            }
+        }
+
+        function alternarSlides() {
+            const slideA = document.getElementById('slideGlobal');
+            const slideB = document.getElementById('slideRanking');
+
+            if (slideA.classList.contains('ativo')) {
+                slideA.classList.remove('ativo');
+                slideB.classList.add('ativo');
+            } else {
+                slideB.classList.remove('ativo');
+                slideA.classList.add('ativo');
+            }
+        }
+
+        function mostrarPainelVazio() {
+            document.getElementById('numPercentualEscola').textContent = "---";
+            document.getElementById('badgeStatus').className = "status-badge bg-alerta";
+            document.getElementById('badgeStatus').textContent = "Sem Chamadas";
+            document.getElementById('listaTop5').innerHTML = `<div style="color:#64748b; text-align:center; padding:30px; font-size:1.5rem;">Aguardando chamadas...</div>`;
+            document.getElementById('listaZ4').innerHTML = `<div style="color:#64748b; text-align:center; padding:30px; font-size:1.5rem;">Aguardando chamadas...</div>`;
+        }
+    </script>
+</body>
+</html>
