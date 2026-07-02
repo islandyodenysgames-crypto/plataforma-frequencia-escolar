@@ -5,6 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Frequência - Escola Carminha</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 🏷️ Estilos para os indicadores visuais de status da chamada */
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.6rem;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 4px;
+            margin-left: 12px;
+            vertical-align: middle;
+            letter-spacing: 0.5px;
+        }
+        .status-pendente {
+            background-color: #ffeaa7;
+            color: #d63031;
+            border: 1px solid #00000015;
+        }
+        .status-salvo {
+            background-color: #badc58;
+            color: #27ae60;
+            border: 1px solid #00000015;
+        }
+
+        /* 📅 Estilos para a barra de datas concluídas */
+        .datas-concluidas-container {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .badge-data-salva {
+            background-color: #27ae60;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+        .badge-data-salva:hover {
+            background-color: #218c53;
+        }
+        .txt-historico-vazio {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
     <header class="main-header">
@@ -22,7 +72,7 @@
         <section class="filtro-chamada">
             <div class="form-group">
                 <label for="selectTurma">Selecione a Turma:</label>
-                <select id="selectTurma">
+                <select id="selectTurma" onchange="atualizarPainelDatasDaTurma(this.value)">
                     <option value="">-- Escolha uma Turma --</option>
                 </select>
             </div>
@@ -30,6 +80,11 @@
             <div class="form-group">
                 <label for="inputData">Data da Chamada:</label>
                 <input type="date" id="inputData">
+                
+                <div style="margin-top: 8px; font-size: 0.85rem; font-weight: bold; color: #2c3e50;">Chamadas realizadas:</div>
+                <div id="containerDatasConcluidas" class="datas-concluidas-container">
+                    <span class="txt-historico-vazio">Selecione uma turma para ver o histórico.</span>
+                </div>
             </div>
 
             <button onclick="carregarAlunos()" id="btnBuscar">Buscar Lista</button>
@@ -87,30 +142,76 @@
             }
         }
 
-        // 🔄 BUSCAR ALUNOS DA TURMA E VERIFICAR HISTÓRICO
+        // 📅 DETECTAR E MOSTRAR DIAS QUE JÁ POSSUEM CHAMADA
+        async function atualizarPainelDatasDaTurma(turma) {
+            const container = document.getElementById('containerDatasConcluidas');
+            if (!turma) {
+                container.innerHTML = '<span class="txt-historico-vazio">Selecione uma turma para ver o histórico.</span>';
+                return;
+            }
+
+            try {
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/datas-concluidas/${encodeURIComponent(turma)}`, {
+                    headers: { 'x-auth-token': token }
+                });
+                
+                if (!res.ok) throw new Error();
+                const datas = await res.json();
+                container.innerHTML = '';
+
+                if (datas.length === 0) {
+                    container.innerHTML = '<span class="txt-historico-vazio">Nenhuma chamada realizada para esta turma ainda.</span>';
+                    return;
+                }
+
+                // Cria botões dinâmicos para cada data retornada
+                datas.forEach(dataIso => {
+                    // Formata a data de AAAA-MM-DD para DD/MM/AAAA para exibição amigável ao usuário
+                    const partes = dataIso.split('-');
+                    const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+                    const btnData = document.createElement('button');
+                    btnData.className = 'badge-data-salva';
+                    btnData.textContent = dataFormatada;
+                    // Se o professor clicar no botão, preenche o calendário e busca a lista automaticamente
+                    btnData.onclick = () => {
+                        document.getElementById('inputData').value = dataIso;
+                        carregarAlunos();
+                    };
+
+                    container.appendChild(btnData);
+                });
+
+            } catch (err) {
+                container.innerHTML = '<span class="txt-historico-vazio" style="color:red;">Erro ao carregar histórico de datas.</span>';
+            }
+        }
+
+        // 🔄 BUSCAR ALUNOS DA TURMA E CONFERIR SE JÁ EXISTE CHAMADA
         async function carregarAlunos() {
             const turma = document.getElementById('selectTurma').value;
             const dataSelecionada = document.getElementById('inputData').value;
+            
             if (!turma) return alert('Por favor, selecione uma turma!');
             if (!dataSelecionada) return alert('Por favor, selecione uma data!');
 
             try {
-                // 1. Busca os alunos ativos daquela turma
+                // 1. Busca os alunos ativos cadastrados na turma
                 const respostaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
-                if (!respostaAlunos.ok) throw new Error('Erro ao buscar alunos.');
+                if (!respostaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
                 alunosCarregados = await respostaAlunos.json();
 
-                // 2. Busca se já existe chamada gravada para essa turma nesta data específica
+                // 2. Tenta capturar o histórico de chamadas do banco para esta data e turma
                 const respostaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
                 const historico = respostaHistorico.ok ? await respostaHistorico.json() : [];
 
-                // 3. Renderiza aplicando os dados encontrados ou o padrão limpo
+                // 3. Renderiza a tabela cruzando as informações
                 renderizarLista(historico);
 
             } catch (error) {
@@ -122,32 +223,36 @@
         function renderizarLista(historicoSalvo = []) {
             const corpoTabela = document.getElementById('listaAlunosCorpo');
             const feedback = document.getElementById('msgFeedback');
+            const tituloChamada = document.getElementById('tituloChamada');
+            const turma = document.getElementById('selectTurma').value;
+            
             corpoTabela.innerHTML = '';
-            feedback.textContent = ''; // Limpa mensagens anteriores
+            feedback.textContent = ''; 
 
             if (alunosCarregados.length === 0) {
+                tituloChamada.innerHTML = `Lista de Alunos - ${turma}`;
                 corpoTabela.innerHTML = `<tr><td colspan="3" style="text-align:center;">Nenhum aluno ativo cadastrado nesta turma.</td></tr>`;
                 document.getElementById('areaChamada').style.display = 'block';
                 return;
             }
 
-            // Se o array de histórico tiver itens, significa que a chamada já foi realizada
             const chamadaJaFeita = historicoSalvo.length > 0;
+            
             if (chamadaJaFeita) {
-                feedback.textContent = 'ℹ️ Exibindo chamada já realizada nesta data. Você pode alterá-la e salvar novamente se necessário.';
+                tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-salvo">✓ CHAMADA CONCLUÍDA</span>`;
+                feedback.textContent = 'ℹ️ Exibindo chamada já realizada nesta data. Modificações feitas abaixo sobrescreverão o registro antigo ao salvar.';
                 feedback.className = 'info-msg';
+            } else {
+                tituloChamada.innerHTML = `Lista de Alunos - ${turma} <span class="status-badge status-pendente">⚠️ CHAMADA PENDENTE</span>`;
             }
 
             alunosCarregados.forEach((aluno, index) => {
-                // Procura se este aluno específico tem um registro no histórico recuperado
                 const registroSalvo = historicoSalvo.find(h => h.aluno_id === aluno._id);
 
                 if (registroSalvo) {
-                    // Restaura o estado salvo do banco de dados
                     aluno.houve_falta = registroSalvo.houve_falta;
                     aluno.motivo_falta = registroSalvo.motivo_falta;
                 } else {
-                    // Padrão limpo: Todos começam Presentes (houve_falta = false)
                     aluno.houve_falta = false;
                     aluno.motivo_falta = 'NENHUM';
                 }
@@ -236,8 +341,9 @@
                 feedback.textContent = dados.mensagem || dados.erro;
                 feedback.className = resposta.ok ? 'sucesso-msg' : 'erro-msg';
 
-                // Recarrega a lista para fixar visualmente as cores salvas
                 if(resposta.ok) {
+                    // 🔥 ATUALIZADO: Recarrega as listas de botões e o status da tabela imediatamente
+                    atualizarPainelDatasDaTurma(turma);
                     setTimeout(() => carregarAlunos(), 1000);
                 }
 
