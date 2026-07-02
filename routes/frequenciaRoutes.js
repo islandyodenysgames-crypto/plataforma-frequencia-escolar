@@ -81,7 +81,7 @@ router.put('/alunos/:id', auth, async (req, res) => {
         const dadosAtualizados = req.body;
         const aluno = await Aluno.findByIdAndUpdate(req.params.id, dadosAtualizados, { new: true });
         if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado.' });
-        res.json({ mensagem: 'Aluno atualizado com sucesso! 🔄', aluno });
+        res.json({ mensagem: 'Aluno updated com sucesso! 🔄', aluno });
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao atualizar dados do aluno.', detalhes: error.message });
     }
@@ -161,34 +161,38 @@ router.delete('/deletar-chamada/:turma/:data', auth, async (req, res) => {
     }
 });
 
-// Gerar relatório estatístico de uma turma filtrado por mês/ano
+// 📊 GERAR RELATÓRIO ESTATÍSTICO DA TURMA FILTRADO POR MÊS/ANO (BLINDADO)
 router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
     try {
         const { turma, anoMes } = req.params; // Ex: "2026-07"
         
-        // Divide a string "ano-mes" para gerar objetos de data do javascript
         const [ano, mes] = anoMes.split('-').map(Number);
         
-        // Gera o intervalo de segurança cobrindo o primeiro e o último segundo do mês selecionado
+        // Define o intervalo exato de segurança cobrindo o fuso horário UTC do MongoDB
         const dataInicio = new Date(Date.UTC(ano, mes - 1, 1, 0, 0, 0));
         const dataFim = new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999));
 
         // 1. Busca alunos ativos na turma correspondente
         const alunos = await Aluno.find({ turma, ativo: true }).sort({ nome: 1 });
         
-        // 2. Busca abrangente que resolve incompatibilidades de tipo de dado no MongoDB
+        // 2. Busca abrangente para evitar incompatibilidades de tipo primitivo String vs Date Object
         const registros = await Frequencia.find({
             turma,
             $or: [
-                { data: { $regex: `^${anoMes}` } }, // Se salvo como String
-                { data: { $gte: dataInicio, $lte: dataFim } } // Se salvo como Date Object
+                { data: { $regex: `^${anoMes}` } },
+                { data: { $gte: dataInicio, $lte: dataFim } }
             ]
         });
 
-        // 3. Montagem estruturada do relatório por estudante
+        // 3. Estruturação do mapeamento individual por aluno
         const relatorio = alunos.map(aluno => {
             const idString = aluno._id.toString();
-            const chamadasAluno = registros.filter(r => r.aluno_id === idString);
+            
+            // Filtra os registros prevenindo erros se aluno_id for um ObjectId bruto do Mongo
+            const chamadasAluno = registros.filter(r => {
+                const rAlunoId = r.aluno_id ? r.aluno_id.toString() : '';
+                return rAlunoId === idString;
+            });
             
             const totalDias = chamadasAluno.length;
             const totalFaltas = chamadasAluno.filter(r => r.houve_falta === true).length;
@@ -199,14 +203,18 @@ router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
                 : 100;
 
             const motivos = { DIRETA: 0, JUSTIFICADA: 0, ATESTADO: 0, ONIBUS: 0 };
+            
             chamadasAluno.forEach(r => {
-                if (r.houve_falta && motivos[r.motivo_falta] !== undefined) {
-                    motivos[r.motivo_falta]++;
+                if (r.houve_falta && r.motivo_falta) {
+                    const motivoChave = r.motivo_falta.toString().toUpperCase();
+                    if (motivos[motivoChave] !== undefined) {
+                        motivos[motivoChave]++;
+                    }
                 }
             });
 
             return {
-                aluno_id: aluno._id,
+                aluno_id: idString,
                 nome: aluno.nome,
                 totalDias,
                 totalPresencas,
@@ -218,6 +226,7 @@ router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
 
         res.json(relatorio);
     } catch (error) {
+        console.error("Erro interno no processamento do relatório:", error);
         res.status(500).json({ erro: 'Erro ao gerar relatório estatístico.', detalhes: error.message });
     }
 });
