@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Escolar - Escola Carminha</title>
     <style>
+        :root {
+            --bg-principal: #0f172a;
+            --bg-card: #1e293b;
+            --bg-item: #111827;
+            --texto-claro: #f8fafc;
+            --cor-ouro: #eab308;
+            --cor-sucesso: #4ade80;
+            --cor-alerta: #f87171;
+            --cor-azul: #38bdf8;
+        }
+
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
+            background-color: var(--bg-principal);
+            color: var(--texto-claro);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
@@ -17,36 +28,54 @@
             flex-direction: column;
         }
 
+        .resumo-discreto-topo {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 15px 40px;
+            background: var(--bg-card);
+            box-sizing: border-box;
+            border-bottom: 1px solid #334155;
+            font-size: 1.4rem;
+            color: #94a3b8;
+        }
+
         .tv-container {
             flex: 1;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 30px;
+            padding: 20px 40px;
             text-align: center;
+            box-sizing: border-box;
         }
 
         .slide {
             display: none;
             width: 100%;
-            max-width: 1300px;
-            animation: fadeIn 1s ease-in-out forwards;
+            height: 100%;
+            animation: fadeIn 0.8s ease-in-out forwards;
         }
 
-        .slide.ativo { display: block; }
+        .slide.ativo {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.99); }
             to { opacity: 1; transform: scale(1); }
         }
 
-        /* --- TELA CAMPEÃO GIGANTE --- */
+        /* --- TELA 1: CAMPEÃO --- */
         .container-campeao {
             background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
-            padding: 20px;
+            padding: 30px;
             border-radius: 24px;
-            border: 4px solid #eab308; /* Dourado */
+            border: 4px solid var(--cor-ouro);
             box-shadow: 0 0 50px rgba(234, 179, 8, 0.2);
             display: flex;
             flex-direction: column;
@@ -56,75 +85,94 @@
         .titulo-podio {
             font-size: 3.5rem;
             font-weight: 900;
-            color: #eab308;
-            margin: 0 0 10px 0;
+            color: var(--cor-ouro);
+            margin: 0 0 5px 0;
             text-shadow: 0 0 10px rgba(234,179,8,0.4);
         }
 
         .nome-turma-campea {
-            font-size: 5rem;
+            font-size: 5.5rem;
             font-weight: 800;
             margin: 5px 0;
-            color: #fff;
         }
 
         .foto-turma-frame {
             width: 100%;
-            max-width: 850px;
+            max-width: 900px;
             height: 480px;
             border-radius: 16px;
             object-fit: cover;
-            border: 5px solid #1e293b;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            background-color: #1e293b;
+            border: 5px solid var(--bg-card);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            background-color: var(--bg-card);
             margin-top: 15px;
         }
 
         .foto-placeholder {
-            max-width: 850px;
+            max-width: 900px;
             height: 480px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 3rem;
-            background: #1e293b;
+            background: var(--bg-card);
             color: #64748b;
             border-radius: 16px;
             width: 100%;
             font-style: italic;
         }
 
-        /* --- TELA TABELA COMPLETA --- */
-        .ranking-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            width: 100%;
+        /* --- TELA 2: QUADRO GERAL EXPANDIDO --- */
+        .titulo-geral {
+            font-size: 3rem;
+            margin: 0 0 20px 0;
+            font-weight: 800;
         }
 
-        .coluna-ranking {
-            background: #1e293b;
-            padding: 30px;
+        /* O Grid se adapta caso haja muitas turmas, criando colunas extras automaticamente */
+        .ranking-completo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-height: 75vh;
+        }
+
+        .bloco-frequencia {
+            background: var(--bg-card);
+            padding: 25px;
             border-radius: 20px;
             border: 1px solid #334155;
             text-align: left;
+        }
+
+        .lista-scroll-tv {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .ranking-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px 20px;
-            background: #111827;
-            margin-bottom: 12px;
+            padding: 12px 20px;
+            background: var(--bg-item);
             border-radius: 12px;
             font-size: 1.8rem;
-            font-weight: 600;
+            font-weight: 700;
+            border-left: 6px solid #64748b;
         }
 
+        /* Cores de Destaque por posição no Grid Geral */
+        .ranking-item.ouro { border-left-color: var(--cor-ouro); background: linear-gradient(90deg, #2e2a14, var(--bg-item)); }
+        .ranking-item.prata { border-left-color: #cbd5e1; }
+        .ranking-item.bronze { border-left-color: #b45309; }
+        .ranking-item.alerta { border-left-color: var(--cor-alerta); }
+
         .ranking-item .posicao {
-            background: #38bdf8;
-            color: #0f172a;
+            background: #334155;
+            color: var(--texto-claro);
             width: 45px;
             height: 45px;
             display: flex;
@@ -132,20 +180,18 @@
             justify-content: center;
             border-radius: 50%;
             margin-right: 15px;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
         }
 
-        .resumo-discreto-topo {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            padding: 15px 40px;
-            background: #1e293b;
-            box-sizing: border-box;
-            border-bottom: 1px solid #334155;
-            font-size: 1.3rem;
-            color: #94a3b8;
+        .ranking-item.ouro .posicao { background: var(--cor-ouro); color: #000; }
+
+        /* --- TELA 3: BANNER DE AVISOS --- */
+        .banner-aviso-img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
     </style>
 </head>
@@ -153,34 +199,47 @@
 
     <div class="resumo-discreto-topo">
         <span id="txtDataAtual">📅 --/--/----</span>
-        <span>Escola Carminha 🏫</span>
-        <span>Frequência Média Geral da Escola: <strong id="mediaGeralEscola" style="color: #38bdf8;">0%</strong></span>
+        <span>Mural Digital Escolar 📋</span>
+        <span>Frequência Média Geral: <strong id="mediaGeralEscola" style="color: var(--cor-azul);">0%</strong></span>
     </div>
     
     <div class="tv-container">
         
+        <!-- SLIDE 1: FOTO DA TURMA CAMPEÃ -->
         <div id="slideCampeao" class="slide ativo">
             <div class="container-campeao">
-                <div class="titulo-podio">🏆 1º LUGAR EM FREQUÊNCIA HOJE</div>
+                <div class="titulo-podio">🏆 1º LUGAR EM ASSIDUIDADE HOJE</div>
                 <div id="nomeCampeao" class="nome-turma-campea">CARREGANDO...</div>
-                <div id="txtAproveitamentoCampeao" style="font-size: 2.2rem; color: #4ade80; font-weight: bold;">Aproveitamento: --%</div>
-                
-                <div id="areaFotoCampeao">
-                    </div>
+                <div id="txtAproveitamentoCampeao" style="font-size: 2.5rem; color: var(--cor-sucesso); font-weight: bold; margin-bottom: 10px;">Rendimento: --%</div>
+                <div id="areaFotoCampeao"></div>
             </div>
         </div>
 
+        <!-- SLIDE 2: RANKING E FREQUÊNCIA COMPLETA DE TODAS AS TURMAS -->
         <div id="slideTabela" class="slide">
-            <h1 style="font-size: 2.5rem; margin: 0 0 25px 0;">📊 Classificação Geral de Hoje</h1>
-            <div class="ranking-grid">
-                <div class="coluna-ranking" style="border-top: 6px solid #4ade80;">
-                    <h3 style="color: #4ade80; font-size: 2rem; margin-top:0;">⭐ Top Turmas</h3>
-                    <div id="listaTop5"></div>
+            <h1 class="titulo-geral">📊 Classificação e Frequência de Hoje</h1>
+            <div class="ranking-completo-grid">
+                
+                <!-- Coluna da Esquerda: Metade Superior do Ranking -->
+                <div class="bloco-frequencia" style="border-top: 6px solid var(--cor-sucesso);">
+                    <h3 style="color: var(--cor-sucesso); font-size: 2.1rem; margin: 0 0 15px 0;">⭐ Líderes de Presença</h3>
+                    <div id="listaFrequenciaMetade1" class="lista-scroll-tv"></div>
                 </div>
-                <div class="coluna-ranking" style="border-top: 6px solid #f87171;">
-                    <h3 style="color: #f87171; font-size: 2rem; margin-top:0;">⚠️ Atenção</h3>
-                    <div id="listaZ4"></div>
+
+                <!-- Coluna da Direita: Metade Inferior do Ranking -->
+                <div class="bloco-frequencia" style="border-top: 6px solid var(--cor-alerta);">
+                    <h3 style="color: var(--cor-alerta); font-size: 2.1rem; margin: 0 0 15px 0;">📉 Demais Turmas</h3>
+                    <div id="listaFrequenciaMetade2" class="lista-scroll-tv"></div>
                 </div>
+
+            </div>
+        </div>
+
+        <!-- SLIDE 3: BANNER DE AVISOS DA BIBLIOTECA -->
+        <div id="slideAviso" class="slide">
+            <!-- A URL deste PNG pode ser apontada para um local fixo que a biblioteca edita -->
+            <div id="areaBannerAviso">
+                <img src="https://frequencia-carminha.up.railway.app/public/banners/aviso_biblioteca.png" class="banner-aviso-img" onerror="this.src='https://placehold.co/1200x600/1e293b/f8fafc?text=Espaço+Reservado+para+Avisos+da+Biblioteca+📚'" alt="Avisos Importantes">
             </div>
         </div>
 
@@ -192,9 +251,13 @@
 
         document.getElementById('txtDataAtual').textContent = hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
+        // Ordem sequencial das telas ativos
+        const sequenciaSlides = ['slideCampeao', 'slideTabela', 'slideAviso'];
+        let indiceSlideAtual = 0;
+
         carregarDadosPainel();
-        setInterval(carregarDadosPainel, 5 * 60 * 1000); // Recarrega os dados a cada 5 min
-        setInterval(alternarSlides, 15 * 1000);          // Alterna as telas a cada 15 segundos
+        setInterval(carregarDadosPainel, 4 * 60 * 1000); // Atualiza os dados a cada 4 minutos
+        setInterval(alternarSlides, 16 * 1000);          // Rotaciona a tela a cada 16 segundos
 
         async function carregarDadosPainel() {
             try {
@@ -207,12 +270,12 @@
                     return;
                 }
 
-                // 1. Calcula Média Geral Discreta no Topo
+                // 1. Média Geral do Topo
                 let somaAproveitamento = 0;
                 dados.forEach(t => somaAproveitamento += t.aproveitamento);
                 document.getElementById('mediaGeralEscola').textContent = `${Math.round(somaAproveitamento / dados.length)}%`;
 
-                // 2. Renderiza Tela do 1º Lugar (Campeão) com a Foto Gigante
+                // 2. Tela 1 (Campeão do Dia)
                 const campeao = dados[0];
                 document.getElementById('nomeCampeao').textContent = campeao.turma;
                 document.getElementById('txtAproveitamentoCampeao').textContent = `Assiduidade Premiada: ${campeao.aproveitamento}%`;
@@ -221,71 +284,71 @@
                 if (campeao.fotoUrl) {
                     areaFoto.innerHTML = `<img src="${campeao.fotoUrl}" class="foto-turma-frame" alt="Foto da Turma Campeã">`;
                 } else {
-                    areaFoto.innerHTML = `<div class="foto-placeholder">📸 Sem foto cadastrada para o ${campeao.turma}</div>`;
+                    areaFoto.innerHTML = `<div class="foto-placeholder">📸 Adicione a foto do ${campeao.turma} na tela de gerenciamento</div>`;
                 }
 
-                // 3. Renderiza Listagem Geral das Tabelas
-                renderizarTabelas(dados);
+                // 3. Tela 2 (Distribuição de todas as turmas cadastradas)
+                renderizarTodasAsTurmas(dados);
 
             } catch (err) {
                 console.error("Erro ao carregar dados na TV:", err);
             }
         }
 
-        function renderizarTabelas(dados) {
-            const listaTop5 = document.getElementById('listaTop5');
-            const listaZ4 = document.getElementById('listaZ4');
-            listaTop5.innerHTML = '';
-            listaZ4.innerHTML = '';
+        function renderizarTodasAsTurmas(dados) {
+            const metade1 = document.getElementById('listaFrequenciaMetade1');
+            const metade2 = document.getElementById('listaFrequenciaMetade2');
+            metade1.innerHTML = '';
+            metade2.innerHTML = '';
 
-            const melhores = [...dados].slice(0, 5);
-            const piores = dados.length > 5 ? [...dados].slice(-4).reverse() : [];
+            // Divide a lista total de turmas ao meio para equilibrar nas duas colunas grandes
+            const meio = Math.ceil(dados.length / 2);
+            
+            dados.forEach((item, index) => {
+                let classeEstilo = '';
+                let iconePosicao = `${index + 1}º`;
 
-            melhores.forEach((item, index) => {
-                listaTop5.innerHTML += `
-                    <div class="ranking-item">
+                // Aplica regras de destaque visual baseadas no rank real
+                if (index === 0) { classeEstilo = 'ouro'; iconePosicao = '🥇'; }
+                else if (index === 1) { classeEstilo = 'prata'; iconePosicao = '🥈'; }
+                else if (index === 2) { classeEstilo = 'bronze'; iconePosicao = '🥉'; }
+                else if (item.aproveitamento < 85) { classeEstilo = 'alerta'; } // Abaixo de 85% ganha borda vermelha
+
+                const htmlItem = `
+                    <div class="ranking-item ${classeEstilo}">
                         <div style="display:flex; align-items:center;">
-                            <span class="posicao" style="background:#eab308; color:#000;">${index + 1}º</span>
+                            <span class="posicao">${iconePosicao}</span>
                             <span>${item.turma}</span>
                         </div>
-                        <span style="color:#4ade80;">${item.aproveitamento}%</span>
+                        <span style="color: ${item.aproveitamento >= 90 ? 'var(--cor-sucesso)' : 'var(--cor-alerta)'};">
+                            ${item.aproveitamento}%
+                        </span>
                     </div>
                 `;
-            });
 
-            if (piores.length > 0) {
-                piores.forEach(item => {
-                    listaZ4.innerHTML += `
-                        <div class="ranking-item">
-                            <div style="display:flex; align-items:center;">
-                                <span class="posicao" style="background:#f87171;">⚠️</span>
-                                <span>${item.turma}</span>
-                            </div>
-                            <span style="color:#f87171;">${item.aproveitamento}%</span>
-                        </div>
-                    `;
-                });
-            } else {
-                listaZ4.innerHTML = `<div style="font-size:1.5rem; color:#64748b; text-align:center; padding-top:30px;">Todas as turmas com ótimo rendimento! 🎉</div>`;
-            }
+                // Joga para a coluna 1 ou coluna 2 dependendo da metade
+                if (index < meio) {
+                    metade1.innerHTML += htmlItem;
+                } else {
+                    metade2.innerHTML += htmlItem;
+                }
+            });
         }
 
         function alternarSlides() {
-            const slideA = document.getElementById('slideCampeao');
-            const slideB = document.getElementById('slideTabela');
-
-            if (slideA.classList.contains('ativo')) {
-                slideA.classList.remove('ativo');
-                slideB.classList.add('ativo');
-            } else {
-                slideB.classList.remove('ativo');
-                slideA.classList.add('ativo');
-            }
+            // Remove a classe ativo do slide atual
+            document.getElementById(sequenciaSlides[indiceSlideAtual]).classList.remove('ativo');
+            
+            // Avança o ponteiro do slide
+            indiceSlideAtual = (indiceSlideAtual + 1) % sequenciaSlides.length;
+            
+            // Ativa o próximo slide
+            document.getElementById(sequenciaSlides[indiceSlideAtual]).classList.add('ativo');
         }
 
         function mostrarPainelVazio() {
-            document.getElementById('nomeCampeao').textContent = "AGUARDANDO CHAMADAS";
-            document.getElementById('areaFotoCampeao').innerHTML = `<div class="foto-placeholder">Nenhuma chamada realizada hoje.</div>`;
+            document.getElementById('nomeCampeao').textContent = "SEM CHAMADAS HOJE";
+            document.getElementById('areaFotoCampeao').innerHTML = `<div class="foto-placeholder">Nenhuma frequência registrada até o momento.</div>`;
             document.getElementById('mediaGeralEscola').textContent = '0%';
         }
     </script>
