@@ -18,7 +18,6 @@
 
     <main class="dashboard-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
         
-        <!-- LADO ESQUERDO: GERENCIADOR DO TELÃO -->
         <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3>📺 Controlar Playlist do Telão</h3>
             <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">Adicione vídeos do YouTube, posts/reels do Instagram ou avisos em imagem para rodar no telão da escola.</p>
@@ -45,7 +44,6 @@
             <div id="listaPlaylist" style="max-height: 250px; overflow-y: auto; margin-top: 10px;"></div>
         </section>
 
-        <!-- LADO DIREITO: BIBLIOTECA DE ARQUIVOS (Opcional/Existente) -->
         <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3>📚 Biblioteca Digital Pedagógica</h3>
             <p style="font-size: 0.9rem; color: #64748b;">Repositório fixo de documentos internos, calendários e planejamentos.</p>
@@ -62,114 +60,132 @@
         // Carrega a playlist ao abrir a página
         document.addEventListener('DOMContentLoaded', buscarPlaylist);
 
-        // Função para formatar links do YouTube e do Instagram para formatos aceitos em Iframe
-        function formatarLinkMidia(url) {
+        // Função inteligente para detectar o tipo e formatar links de mídias (YouTube/Instagram)
+        function detectarTipoEFormatar(url) {
             let urlFormatada = url.trim();
+            let tipo = 'imagem'; // Padrão se não cair em regras específicas
 
-            // Trata links do Instagram (Post ou Reels)
             if (urlFormatada.includes('instagram.com')) {
-                // Remove barras extras ou query parameters finais se houver
+                tipo = 'instagram';
                 if (urlFormatada.includes('?')) {
                     urlFormatada = urlFormatada.split('?')[0];
                 }
                 if (!urlFormatada.endsWith('/')) {
                     urlFormatada += '/';
                 }
-                // Adiciona o sufixo necessário para embutir o post de forma pública
                 urlFormatada += 'embed';
-                return urlFormatada;
+                return { tipo, url: urlFormatada };
             }
 
-            // Trata links normais do YouTube
             if (urlFormatada.includes('youtube.com/watch?v=')) {
+                tipo = 'video';
                 const videoId = urlFormatada.split('v=')[1]?.split('&')[0];
-                return `https://www.youtube.com/embed/${videoId}`;
-            }
-            // Trata links curtos do YouTube (youtu.be)
-            if (urlFormatada.includes('youtu.be/')) {
-                const videoId = urlFormatada.split('youtu.be/')[1]?.split('?')[0];
-                return `https://www.youtube.com/embed/${videoId}`;
+                return { tipo, url: `https://www.youtube.com/embed/${videoId}` };
             }
 
-            return urlFormatada;
+            if (urlFormatada.includes('youtu.be/')) {
+                tipo = 'video';
+                const videoId = urlFormatada.split('youtu.be/')[1]?.split('?')[0];
+                return { tipo, url: `https://www.youtube.com/embed/${videoId}` };
+            }
+
+            return { tipo, url: urlFormatada };
         }
 
+        // Buscar itens na playlist via API unificada
         async function buscarPlaylist() {
             try {
-                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midia/playlist', {
-                    headers: { 'x-auth-token': token }
-                });
-                const mídias = await res.json();
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist');
+                if (!res.ok) throw new Error("Erro na resposta da rede");
+                const midias = await res.json();
+                
                 const container = document.getElementById('listaPlaylist');
                 container.innerHTML = '';
 
-                if (mídias.length === 0) {
+                if (!midias || midias.length === 0) {
                     container.innerHTML = '<p style="color: #94a3b8; font-style: italic;">Nenhuma mídia ativa no telão.</p>';
                     return;
                 }
 
-                mídias.forEach(item => {
-                    let tipoIcone = item.url.includes('instagram') ? '📸' : (item.url.includes('youtube') ? '🎥' : '🖼️');
+                midias.forEach(item => {
+                    let tipoIcone = item.tipo === 'instagram' ? '📸' : (item.tipo === 'video' ? '🎥' : '🖼️');
                     container.innerHTML += `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 8px; border-radius: 6px;">
                             <div>
                                 <strong>${tipoIcone} ${item.titulo}</strong>
-                                <br><small style="color:#64748b;">Tempo: ${item.tempoExibicao}s</small>
+                                <br><small style="color:#64748b;">Tempo: ${item.tempoExibicao || 15}s</small>
                             </div>
-                            <button onclick="removerMidia('${item._id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Excluir</button>
+                            <button onclick="removerMidia('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold;">Excluir</button>
                         </div>
                     `;
                 });
             } catch (err) {
                 console.error("Erro ao buscar playlist:", err);
+                document.getElementById('listaPlaylist').innerHTML = '<p style="color: #ef4444; font-style: italic;">Não foi possível atualizar a lista de reprodução.</p>';
             }
         }
 
+        // Adicionar nova mídia para o painel da TV
         async function adicionarMidia() {
-            const titulo = document.getElementById('midiaTitulo').value;
-            const urlOriginal = document.getElementById('midiaUrl').value;
-            const tempoExibicao = document.getElementById('midiaTempo').value;
+            const tituloInput = document.getElementById('midiaTitulo');
+            const urlInput = document.getElementById('midiaUrl');
+            const tempoInput = document.getElementById('midiaTempo');
+
+            const titulo = tituloInput.value.trim();
+            const urlOriginal = urlInput.value.trim();
+            const tempoExibicao = parseInt(tempoInput.value) || 15;
 
             if (!titulo || !urlOriginal) {
                 return alert("Por favor, preencha o título e o link da mídia!");
             }
 
-            // Aplica a formatação inteligente de links
-            const url = formatarLinkMidia(urlOriginal);
+            // Descobre o tipo estruturado e obtém a URL tratada para iframes
+            const midiaTratada = detectarTipoEFormatar(urlOriginal);
 
             try {
-                const res = await fetch('https://frequencia-carminha.up.railway.app/api/midia/adicionar', {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'x-auth-token': token
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ titulo, url, tempoExibicao: parseInt(tempoExibicao) })
+                    body: JSON.stringify({ 
+                        tipo: midiaTratada.tipo, 
+                        titulo: titulo, 
+                        url: midiaTratada.url, 
+                        tempoExibicao: tempoExibicao 
+                    })
                 });
 
                 if (res.ok) {
-                    document.getElementById('midiaTitulo').value = '';
-                    document.getElementById('midiaUrl').value = '';
+                    tituloInput.value = '';
+                    urlInput.value = '';
                     buscarPlaylist();
                 } else {
                     const err = await res.json();
-                    alert("Erro: " + err.erro);
+                    alert("Erro do Servidor: " + (err.erro || "Falha desconhecida"));
                 }
             } catch (error) {
-                alert("Erro ao conectar com o servidor.");
+                console.error(error);
+                alert("Erro de comunicação ao salvar a mídia.");
             }
         }
 
+        // Remover mídia específica da playlist usando o ID numérico estruturado
         async function removerMidia(id) {
-            if (!confirm("Remover esta mídia do telão?")) return;
+            if (!confirm("Tem certeza que deseja remover esta mídia do telão?")) return;
             try {
-                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/midia/remover/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'x-auth-token': token }
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/playlist/${id}`, {
+                    method: 'DELETE'
                 });
-                if (res.ok) buscarPlaylist();
+                
+                if (res.ok) {
+                    buscarPlaylist();
+                } else {
+                    alert("Não foi possível excluir o item selecionado.");
+                }
             } catch (error) {
-                alert("Erro ao remover item.");
+                console.error(error);
+                alert("Erro ao enviar comando de exclusão.");
             }
         }
     </script>
