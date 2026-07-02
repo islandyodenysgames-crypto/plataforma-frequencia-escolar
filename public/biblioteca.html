@@ -3,199 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Central de Mídias e Biblioteca - Escola Carminha</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Central de Mídias - Escola Carminha</title>
 </head>
 <body>
     <header class="main-header">
-        <div class="header-content">
-            <h2>Central de Mídias e Biblioteca 📚📺</h2>
-            <div class="user-info">
-                <button onclick="window.location.href='dashboard.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer;">⬅️ Voltar ao Dashboard</button>
-            </div>
-        </div>
+        <h2>Central de Mídias e Biblioteca 📚📺</h2>
     </header>
 
     <main class="dashboard-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px;">
-        
-        <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px;">
             <h3>📺 Controlar Playlist do Telão</h3>
-            <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 15px;">Adicione vídeos do YouTube, posts/reels do Instagram ou avisos em imagem para rodar no telão.</p>
             
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e2e8f0;">
-                <strong style="font-size: 0.95rem; color: #1e293b; display: block; margin-bottom: 10px;">⏱️ Configurar Tempo das Telas Padrões:</strong>
-                
-                <div style="margin-bottom: 10px;">
-                    <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">Tela Campeão (segundos):</label>
-                    <input type="number" id="tempoTelaCampeao" value="15" min="3" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px; box-sizing: border-box;">
-                </div>
-                
-                <div style="margin-bottom: 15px;">
-                    <label style="font-size: 0.85rem; font-weight: bold; color: #475569;">Tela Tabela de Frequência (segundos):</label>
-                    <input type="number" id="tempoTelaTabela" value="15" min="3" style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; margin-top: 4px; box-sizing: border-box;">
-                </div>
-
-                <button onclick="salvarTemposPadrao()" style="background: #4f46e5; color: white; border: none; width: 100%; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.9rem;">💾 Salvar Alterações de Tempo</button>
-                
-                <div id="statusSalvamento" style="font-size: 0.85rem; color: #16a34a; font-weight: bold; margin-top: 10px; text-align: center; display: none; background: #dcfce7; padding: 6px; border-radius: 4px;">✅ Tempos salvos e aplicados com sucesso!</div>
-            </div>
-
             <div class="form-group" style="margin-bottom: 15px;">
                 <label>Título do Conteúdo:</label>
-                <input type="text" id="midiaTitulo" placeholder="Ex: Fotos da Festa Junina / Aviso Importante">
+                <input type="text" id="midiaTitulo" style="width: 100%;">
             </div>
-
             <div class="form-group" style="margin-bottom: 15px;">
-                <label>Link da Mídia (YouTube, Instagram ou Imagem pública):</label>
-                <input type="text" id="midiaUrl" placeholder="https://www.instagram.com/p/...">
+                <label>Link da Mídia:</label>
+                <input type="text" id="midiaUrl" style="width: 100%;">
             </div>
-
             <div class="form-group" style="margin-bottom: 15px;">
-                <label>Tempo de Exibição (segundos):</label>
-                <input type="number" id="midiaTempo" value="15" min="5">
+                <label>Orientação:</label>
+                <select id="midiaOrientacao" style="width: 100%; padding: 8px;">
+                    <option value="vertical">Vertical (Instagram Padrão)</option>
+                    <option value="horizontal">Horizontal (16:9)</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Tempo (segundos):</label>
+                <input type="number" id="midiaTempo" value="15" style="width: 100%;">
             </div>
 
-            <button onclick="adicionarMidia()" style="background: #22c55e; color: white; width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Adicionar à Playlist</button>
-
-            <h4 style="margin-top: 25px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Lista de Reprodução Atual</h4>
-            <div id="listaPlaylist" style="max-height: 250px; overflow-y: auto; margin-top: 10px;"></div>
-        </section>
-
-        <section class="card-biblioteca" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h3>📚 Biblioteca Digital Pedagógica</h3>
-            <p style="font-size: 0.9rem; color: #64748b;">Repositório fixo de documentos internos.</p>
-            <div style="margin-top: 20px; padding: 40px; text-align: center; border: 2px dashed #cbd5e1; color: #94a3b8; border-radius: 6px;">
-                Área da Biblioteca (Armazenamento de PDFs e Matrizes)
-            </div>
+            <button onclick="adicionarMidia()" style="background: #22c55e; color: white; width: 100%; padding: 10px; border: none; cursor: pointer;">Adicionar à Playlist</button>
+            <div id="listaPlaylist" style="margin-top: 20px;"></div>
         </section>
     </main>
 
     <script>
-        const token = localStorage.getItem('token_carminha');
-        if (!token) window.location.href = 'index.html';
-
-        document.addEventListener('DOMContentLoaded', () => {
-            buscarPlaylist();
-            document.getElementById('tempoTelaCampeao').value = localStorage.getItem('tempoCampeao') || 15;
-            document.getElementById('tempoTelaTabela').value = localStorage.getItem('tempoTabela') || 15;
-        });
-
-        function salvarTemposPadrao() {
-            const c = document.getElementById('tempoTelaCampeao').value;
-            const t = document.getElementById('tempoTelaTabela').value;
-            localStorage.setItem('tempoCampeao', c);
-            localStorage.setItem('tempoTabela', t);
-            
-            const status = document.getElementById('statusSalvamento');
-            status.style.display = 'block';
-            setTimeout(() => { status.style.display = 'none'; }, 4000);
-            
-            // Força a redesenhar a lista garantindo que ela não suma da tela
-            buscarPlaylist();
-        }
-
         function detectarTipoEFormatar(url) {
             let urlFormatada = url.trim();
-            let tipo = 'imagem';
-
             if (urlFormatada.includes('instagram.com')) {
-                tipo = 'instagram';
                 if (urlFormatada.includes('?')) urlFormatada = urlFormatada.split('?')[0];
                 if (!urlFormatada.endsWith('/')) urlFormatada += '/';
-                urlFormatada += 'embed';
-                return { tipo, url: urlFormatada };
+                return { tipo: 'instagram', url: urlFormatada + 'embed' };
             }
-            if (urlFormatada.includes('youtube.com/watch?v=')) {
-                tipo = 'video';
-                const videoId = urlFormatada.split('v=')[1]?.split('&')[0];
-                return { tipo, url: `https://www.youtube.com/embed/${videoId}` };
+            if (urlFormatada.includes('youtube.com/watch?v=') || urlFormatada.includes('youtu.be/')) {
+                const videoId = urlFormatada.split(/v=|youtu\.be\//)[1].split('?')[0].split('&')[0];
+                return { tipo: 'video', url: `https://www.youtube.com/embed/${videoId}` };
             }
-            if (urlFormatada.includes('youtu.be/')) {
-                tipo = 'video';
-                const videoId = urlFormatada.split('youtu.be/')[1]?.split('?')[0];
-                return { tipo, url: `https://www.youtube.com/embed/${videoId}` };
-            }
-            return { tipo, url: urlFormatada };
-        }
-
-        async function buscarPlaylist() {
-            try {
-                const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist');
-                if (!res.ok) throw new Error();
-                const midias = await res.json();
-                
-                const container = document.getElementById('listaPlaylist');
-                container.innerHTML = '';
-
-                if (!midias || midias.length === 0) {
-                    container.innerHTML = '<p style="color: #94a3b8; font-style: italic;">Nenhuma mídia ativa no telão.</p>';
-                    return;
-                }
-
-                midias.forEach(item => {
-                    let tipoIcone = item.tipo === 'instagram' ? '📸' : (item.tipo === 'video' ? '🎥' : '🖼️');
-                    container.innerHTML += `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; margin-bottom: 8px; border-radius: 6px;">
-                            <div style="flex: 1;">
-                                <strong>${tipoIcone} ${item.titulo}</strong>
-                                <div style="display: flex; align-items: center; gap: 5px; margin-top: 4px;">
-                                    <label style="font-size:0.75rem; color:#64748b;">Tempo (s): </label>
-                                    <input type="number" value="${localStorage.getItem(`tempo_midia_${item.id}`) || item.tempoExibicao || 15}" min="3" style="width: 55px; padding: 2px; font-size:0.8rem;" onchange="atualizarTempoMidia('${item.id}', this.value)">
-                                </div>
-                            </div>
-                            <button onclick="removerMidia('${item.id}')" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size:0.8rem;">Excluir</button>
-                        </div>
-                    `;
-                });
-            } catch (err) { console.error(err); }
-        }
-
-        async function atualizarTempoMidia(id, novoTempo) {
-            localStorage.setItem(`tempo_midia_${id}`, novoTempo);
+            return { tipo: 'imagem', url: urlFormatada };
         }
 
         async function adicionarMidia() {
-            const tituloInput = document.getElementById('midiaTitulo');
-            const urlInput = document.getElementById('midiaUrl');
-            const tempoInput = document.getElementById('midiaTempo');
+            const midiaTratada = detectarTipoEFormatar(document.getElementById('midiaUrl').value);
+            const dados = { 
+                tipo: midiaTratada.tipo, 
+                titulo: document.getElementById('midiaTitulo').value, 
+                url: midiaTratada.url, 
+                tempoExibicao: parseInt(document.getElementById('midiaTempo').value),
+                orientacao: document.getElementById('midiaOrientacao').value 
+            };
 
-            const titulo = tituloInput.value.trim();
-            const urlOriginal = urlInput.value.trim();
-            const tempoExibicao = parseInt(tempoInput.value) || 15;
-
-            if (!titulo || !urlOriginal) return alert("Preencha os campos!");
-
-            const midiaTratada = Pharaoh = detectarTipoEFormatar(urlOriginal);
-
-            try {
-                const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        tipo: midiaTratada.tipo, 
-                        titulo: titulo, 
-                        url: midiaTratada.url, 
-                        tempoExibicao: tempoExibicao 
-                    })
-                });
-
-                if (res.ok) {
-                    tituloInput.value = '';
-                    urlInput.value = '';
-                    buscarPlaylist();
-                }
-            } catch (error) { console.error(error); }
-        }
-
-        async function removerMidia(id) {
-            if (!confirm("Remover mídia?")) return;
-            try {
-                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/playlist/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    localStorage.removeItem(`tempo_midia_${id}`);
-                    buscarPlaylist();
-                }
-            } catch (error) { console.error(error); }
+            await fetch('https://frequencia-carminha.up.railway.app/api/playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dados)
+            });
+            window.location.reload();
         }
     </script>
 </body>
