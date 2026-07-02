@@ -6,7 +6,7 @@
     <title>Painel de Frequência - Escola Carminha</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 🏷️ Estilos para os indicadores visuais de status da chamada */
+        /* 🏷️ Indicadores de status da chamada */
         .status-badge {
             display: inline-block;
             padding: 0.3rem 0.6rem;
@@ -51,20 +51,19 @@
             padding-right: 5px;
         }
 
-        /* 🔥 Estilo das Divisórias de Meses */
+        /* Separadores visuais dos meses */
         .grupo-mes-container {
-            margin-bottom: 15px;
+            margin-bottom: 18px;
         }
         .nome-mes-titulo {
-            font-size: 1.15rem;
-            color: #1e3a8a; /* Azul escuro destacado */
+            font-size: 1.1rem;
+            color: #1e3a8a;
             font-weight: bold;
             text-transform: uppercase;
             border-bottom: 2px solid #e2e8f0;
             padding-bottom: 4px;
             margin-top: 10px;
             margin-bottom: 8px;
-            letter-spacing: 0.5px;
         }
 
         .lista-historico-links {
@@ -156,7 +155,7 @@
                         </tr>
                     </thead>
                     <tbody id="listaAlunosCorpo">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
             
@@ -179,7 +178,6 @@
 
         let alunosCarregados = [];
 
-        // Nomes dos meses para exibição elegante em letras maiores
         const NOMES_MESES = [
             "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
             "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -191,7 +189,7 @@
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
                     headers: { 'x-auth-token': token }
                 });
-                if (!res.ok) throw new Error("Erro ao buscar turmas");
+                if (!res.ok) throw new Error();
                 const turmas = await res.json();
                 const select = document.getElementById('selectTurma');
                 turmas.forEach(t => {
@@ -202,7 +200,7 @@
             }
         }
 
-        // 📅 ATUALIZAR E AGRUPAR O PAINEL DE HISTÓRICO POR MÊS
+        // 📅 ATUALIZAR E AGRUPAR O PAINEL DE HISTÓRICO POR MÊS (Versão Segura)
         async function atualizarPainelDatasDaTurma(turma) {
             const container = document.getElementById('containerDatasConcluidas');
             if (!turma) {
@@ -221,46 +219,41 @@
                 const datas = await res.json();
                 container.innerHTML = '';
 
-                if (datas.length === 0) {
+                if (!datas || datas.length === 0) {
                     container.innerHTML = '<span class="txt-vazio">Nenhuma chamada registrada para esta turma ainda.</span>';
                     return;
                 }
 
-                // Agrupar datas por Chave "Mês / Ano"
-                const gruposPorMes = {};
-
-                datas.forEach(dataRaw => {
-                    const dataIso = dataRaw.substring(0, 10); 
+                // Agrupando com segurança usando reduce
+                const gruposPorMes = datas.reduce((acc, dataRaw) => {
+                    const dataIso = dataRaw.substring(0, 10);
                     const partes = dataIso.split('-');
-                    if (partes.length !== 3) return;
+                    if (partes.length !== 3) return acc;
 
                     const ano = partes[0];
                     const indiceMes = parseInt(partes[1], 10) - 1;
-                    const nomeMes = NOMES_MESES[indiceMes];
-                    
+                    const nomeMes = NOMES_MESES[indiceMes] || "Mês Inválido";
                     const chaveMes = `${nomeMes} de ${ano}`;
 
-                    if (!gruposPorMes[chaveMes]) {
-                        gruposPorMes[chaveMes] = [];
-                    }
-                    gruposPorMes[chaveMes].push({ dataIso, partes });
-                });
+                    if (!acc[chaveMes]) acc[chaveMes] = [];
+                    acc[chaveMes].push({ dataIso, partes });
+                    return acc;
+                }, {});
 
-                // Renderizar os blocos separados por mês
-                for (const [mesAno, itens] of Object.entries(gruposPorMes)) {
+                // Renderização limpa
+                Object.keys(gruposPorMes).forEach(chaveMes => {
                     const grupoDiv = document.createElement('div');
                     grupoDiv.className = 'grupo-mes-container';
 
-                    // Título em letras maiores para o mês
                     const tituloMes = document.createElement('div');
                     tituloMes.className = 'nome-mes-titulo';
-                    tituloMes.textContent = mesAno;
+                    tituloMes.textContent = chaveMes;
                     grupoDiv.appendChild(tituloMes);
 
                     const listaDiv = document.createElement('div');
                     listaDiv.className = 'lista-historico-links';
 
-                    itens.forEach(item => {
+                    gruposPorMes[chaveMes].forEach(item => {
                         const dataFormatada = `${item.partes[2]}/${item.partes[1]}/${item.partes[0]}`;
 
                         const btnData = document.createElement('button');
@@ -278,9 +271,10 @@
 
                     grupoDiv.appendChild(listaDiv);
                     container.appendChild(grupoDiv);
-                }
+                });
 
             } catch (err) {
+                console.error(err);
                 container.innerHTML = '<span class="txt-vazio" style="color:#d63031;">Erro ao processar histórico de chamadas.</span>';
             }
         }
@@ -296,14 +290,14 @@
             dataSelecionada = dataSelecionada.substring(0, 10);
 
             try {
-                const respuestaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
+                const respostaAlunos = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/alunos/${encodeURIComponent(turma)}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
                 if (!respostaAlunos.ok) throw new Error('Erro ao buscar lista de alunos.');
                 alunosCarregados = await respostaAlunos.json();
 
-                const respuestaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
+                const respostaHistorico = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/historico/${encodeURIComponent(turma)}/${dataSelecionada}`, {
                     method: 'GET',
                     headers: { 'x-auth-token': token }
                 });
@@ -351,11 +345,10 @@
                     aluno.motivo_falta = registroSalvo.motivo_falta;
                 } else {
                     aluno.houve_falta = false;
-                    aluno.motivo_falta = 'DIRETA'; // Padrão caso mude para Falta posteriormente
+                    aluno.motivo_falta = 'DIRETA'; 
                 }
 
-                // Se o motivo recuperado for "NENHUM" mas o aluno está com falta, força uma opção válida
-                if (aluno.houve_falta && aluno.motivo_falta === 'NENHUM') {
+                if (aluno.houve_falta && (aluno.motivo_falta === 'NENHUM' || !aluno.motivo_falta)) {
                     aluno.motivo_falta = 'DIRETA';
                 }
 
@@ -394,12 +387,12 @@
                 btnF.classList.remove('active');
                 selectMotivo.disabled = true;
                 alunosCarregados[index].houve_falta = false;
-                alunosCarregados[index].motivo_falta = 'NENHUM'; // Internamente continua NENHUM para presenças
+                alunosCarregados[index].motivo_falta = 'NENHUM';
             } else {
                 btnF.classList.add('active');
                 btnP.classList.remove('active');
                 selectMotivo.disabled = false;
-                selectMotivo.value = 'DIRETA'; // Seleciona automaticamente o primeiro motivo válido
+                selectMotivo.value = 'DIRETA';
                 alunosCarregados[index].houve_falta = true;
                 alunosCarregados[index].motivo_falta = 'DIRETA';
             }
