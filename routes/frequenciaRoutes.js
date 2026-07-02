@@ -81,7 +81,7 @@ router.put('/alunos/:id', auth, async (req, res) => {
         const dadosAtualizados = req.body;
         const aluno = await Aluno.findByIdAndUpdate(req.params.id, dadosAtualizados, { new: true });
         if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado.' });
-        res.json({ mensagem: 'Aluno atualizado com sucesso! 🔄', aluno });
+        res.json({ margin: 'Aluno updated com sucesso! 🔄', aluno });
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao atualizar dados do aluno.', detalhes: error.message });
     }
@@ -125,6 +125,23 @@ router.get('/historico/:turma/:data', auth, async (req, res) => {
         res.json(registros);
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao buscar histórico de chamada.', detalhes: error.message });
+    }
+});
+
+// 📅 NOVO: Buscar apenas as datas únicas que já possuem chamada para uma turma específica
+router.get('/datas-concluidas/:turma', auth, async (req, res) => {
+    try {
+        const { turma } = req.params;
+
+        // O método .distinct() filtra e traz apenas os valores únicos do campo 'data'
+        const datasUnicas = await Frequencia.distinct('data', { turma });
+        
+        // Ordena as datas para que as mais recentes apareçam primeiro na lista de botões
+        datasUnicas.sort((a, b) => new Date(b) - new Date(a));
+
+        res.json(datasUnicas);
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro ao buscar datas concluídas.', detalhes: error.message });
     }
 });
 
