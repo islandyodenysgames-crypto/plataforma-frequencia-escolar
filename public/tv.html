@@ -45,16 +45,14 @@
         .ranking-item.bronze { border-left-color: var(--cor-bronze); }
         .ranking-item .posicao { background: #334155; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 12px; }
         
-        /* CONTAINER DE MÍDIAS */
         .container-midia-dinamica { width: 100%; height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .midia-frame-renderizado { width: 100%; max-width: 1200px; height: 100%; border: none; border-radius: 16px; background: #000; }
         .midia-imagem-renderizada { max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 16px; }
         .titulo-midia-atual { font-size: 2rem; font-weight: bold; color: var(--cor-azul); margin-bottom: 15px; text-transform: uppercase; }
 
-        /* MÁSCARA INSTAGRAM EXPANDIDA E EQUILIBRADA */
         .instagram-tv-wrapper {
-            width: 960px; /* Largura expandida */
-            height: 960px; /* Altura expandida */
+            width: 960px;
+            height: 960px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -67,9 +65,8 @@
             border: none;
             background: #000;
             border-radius: 12px;
-            /* Mantendo a proporção de corte que você aprovou */
-            clip-path: inset(45px 0px 130px 0px);
-            /* Zoom ajustado para o novo tamanho do contêiner */
+            /* Ajustado: 40px na base permite ver a área de interação */
+            clip-path: inset(45px 0px 40px 0px);
             transform: scale(1.15); 
             transform-origin: top center;
         }
