@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios de Frequência - Escola Carminha</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-content">
+            <h2>Escola Carminha 🏫</h2>
+            <div class="user-info">
+                <button onclick="window.location.href='dashboard.html'" style="background: rgba(255,255,255,0.15); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s;">📅 Voltar ao Painel</button>
+                <span>Olá, <strong id="nomeProfessor">Professor</strong></span>
+                <button id="btnSair" onclick="localStorage.clear(); window.location.href='index.html';">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <section class="filtro-chamada">
+            <h3 style="margin-top:0; color:#1e293b;">📊 Gerador de Relatórios Mensais</h3>
+            <p style="color:#64748b; font-size:0.9rem; margin-bottom:20px;">Selecione os filtros abaixo para analisar a assiduidade e os motivos de falta da turma.</p>
+
+            <div class="form-group">
+                <label for="selectTurma">Selecione a Turma:</label>
+                <select id="selectTurma">
+                    <option value="">-- Escolha uma Turma --</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="inputMes">Selecione o Mês / Ano:</label>
+                <input type="month" id="inputMes">
+            </div>
+
+            <button onclick="gerarRelatorio()" id="btnBuscar" style="width:100%; margin-top:10px;">Gerar Relatório Analítico</button>
+        </section>
+
+        <section id="areaRelatorio" class="area-chamada" style="display: none; margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid #e2e8f0; padding-bottom:10px;">
+                <h3 id="tituloRelatorio" style="margin:0; color:#1e3a8a;">Resultados do Período</h3>
+                <button onclick="window.print()" style="background:#475569; color:white; padding:5px 10px; border:none; border-radius:4px; font-weight:bold; cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
+            </div>
+
+            <div class="tabela-responsiva">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome do Aluno</th>
+                            <th style="text-align:center;">Dias Letivos</th>
+                            <th style="text-align:center; color:#16a34a;">Presenças</th>
+                            <th style="text-align:center; color:#dc2626;">Faltas</th>
+                            <th style="text-align:center;">Assiduidade</th>
+                            <th>Principais Motivos de Falta</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoRelatorio">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const token = localStorage.getItem('token_carminha');
+        const nomeProf = localStorage.getItem('usuario_nome');
+
+        if (!token) {
+            window.location.href = 'index.html';
+        } else {
+            document.getElementById('nomeProfessor').textContent = nomeProf;
+            // Define o mês atual por padrão no input tipo month (AAAA-MM)
+            const hoje = new Date();
+            const mesFormatado = String(hoje.getMonth() + 1).padStart(2, '0');
+            document.getElementById('inputMes').value = `${hoje.getFullYear()}-${mesFormatado}`;
+            carregarTurmas();
+        }
+
+        async function carregarTurmas() {
+            try {
+                const res = await fetch('https://frequencia-carminha.up.railway.app/api/frequencia/turmas', {
+                    headers: { 'x-auth-token': token }
+                });
+                if (!res.ok) throw new Error();
+                const turmas = await res.json();
+                const select = document.getElementById('selectTurma');
+                turmas.forEach(t => {
+                    select.innerHTML += `<option value="${t.nome}">${t.nome}</option>`;
+                });
+            } catch (err) {
+                console.error("Erro ao carregar turmas", err);
+            }
+        }
+
+        async function gerarRelatorio() {
+            const turma = document.getElementById('selectTurma').value;
+            const anoMes = document.getElementById('inputMes').value;
+
+            if (!turma) return alert('Por favor, selecione a turma.');
+            if (!anoMes) return alert('Por favor, selecione o mês de referência.');
+
+            try {
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/relatorio/${encodeURIComponent(turma)}/${anoMes}`, {
+                    headers: { 'x-auth-token': token }
+                });
+
+                if (!res.ok) throw new Error();
+                const dados = await res.json();
+
+                renderizarTabelaRelatorio(dados);
+            } catch (err) {
+                alert('Erro ao processar relatório no servidor.');
+            }
+        }
+
+        function renderizarTabelaRelatorio(dados) {
+            const corpo = document.getElementById('corpoRelatorio');
+            corpo.innerHTML = '';
+
+            if (dados.length === 0) {
+                corpo.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Nenhum registro de chamada encontrado para esta combinação.</td></tr>`;
+                document.getElementById('areaRelatorio').style.display = 'block';
+                return;
+            }
+
+            dados.forEach(item => {
+                const tr = document.createElement('tr');
+                
+                // Determina cor de alerta baseado na assiduidade (abaixo de 75% fica vermelho)
+                let corFrequencia = '#16a34a'; // verde
+                let pesoFonte = 'bold';
+                if (item.percentualPresenca < 75) {
+                    corFrequencia = '#dc2626'; // vermelho crítico
+                } else if (item.percentualPresenca < 90) {
+                    corFrequencia = '#d97706'; // amarelo atenção
+                }
+
+                // String amigável de motivos
+                let motivosTxt = [];
+                if (item.motivosDetails.DIRETA > 0) motivosTxt.push(`Direta (${item.motivosDetails.DIRETA})`);
+                if (item.motivosDetails.JUSTIFICADA > 0) motivosTxt.push(`Justif. (${item.motivosDetails.JUSTIFICADA})`);
+                if (item.motivosDetails.ATESTADO > 0) motivosTxt.push(`Atestado (${item.motivosDetails.ATESTADO})`);
+                if (item.motivosDetails.ONIBUS > 0) motivosTxt.push(`Ônibus (${item.motivosDetails.ONIBUS})`);
+                
+                const resumoMotivos = motivosTxt.length > 0 ? motivosTxt.join(', ') : '<span style="color:#94a3b8; font-style:italic;">Nenhuma falta</span>';
+
+                tr.innerHTML = `
+                    <td><strong>${item.nome}</strong></td>
+                    <td style="text-align:center; font-weight:500;">${item.totalDias}</td>
+                    <td style="text-align:center; color:#16a34a; font-weight:bold;">${item.totalPresencas}</td>
+                    <td style="text-align:center; color:#dc2626; font-weight:bold;">${item.totalFaltas}</td>
+                    <td style="text-align:center; color:${corFrequencia}; font-weight:${pesoFonte}; font-size:1.05rem;">
+                        ${item.percentualPresenca}%
+                    </td>
+                    <td style="font-size:0.9rem; color:#475569;">${resumoMotivos}</td>
+                `;
+                corpo.appendChild(tr);
+            });
+
+            document.getElementById('areaRelatorio').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
