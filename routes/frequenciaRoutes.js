@@ -164,19 +164,16 @@ router.delete('/deletar-chamada/:turma/:data', auth, async (req, res) => {
 // 📊 GERAR RELATÓRIO ESTATÍSTICO DA TURMA POR INTERVALO DE DIAS PERSONALIZADO
 router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
     try {
-        const { turma, dataInicio, dataFim } = req.params; // Ex: "2026-07-01" e "2026-07-15"
+        const { turma, dataInicio, dataFim } = req.params;
         
-        // Converte as strings recebidas em datas UTC puras cobrindo o dia inteiro de ponta a ponta
         const [anoI, mesI, diaI] = dataInicio.split('-').map(Number);
         const [anoF, mesF, diaF] = dataFim.split('-').map(Number);
         
         const deData = new Date(Date.UTC(anoI, mesI - 1, diaI, 0, 0, 0));
         const ateData = new Date(Date.UTC(anoF, mesF - 1, diaF, 23, 59, 59, 999));
 
-        // 1. Busca alunos ativos na turma
         const alunos = await Aluno.find({ turma, ativo: true }).sort({ nome: 1 });
         
-        // 2. Busca abrangente no intervalo que aceita tanto tipo Date quanto String ISO ordenável
         const registros = await Frequencia.find({
             turma,
             $or: [
@@ -185,7 +182,6 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
             ]
         });
 
-        // 3. Mapeamento e cálculo estatístico por estudante
         const relatorio = alunos.map(aluno => {
             const idString = aluno._id.toString();
             
@@ -227,6 +223,58 @@ router.get('/relatorio/:turma/:dataInicio/:dataFim', auth, async (req, res) => {
         res.json(relatorio);
     } catch (error) {
         res.status(500).json({ erro: error.message });
+    }
+});
+
+// 🏆 GERAR RANKING DIÁRIO DE FREQUÊNCIA DAS TURMAS (ROTA PÚBLICA - SEM EXIGIR TOKEN)
+router.get('/ranking-diario/:data', async (req, res) => {
+    try {
+        const { data } = req.params; // Formato: "AAAA-MM-DD"
+
+        const turmas = await Turma.find().sort({ nome: 1 });
+        const registrosDia = await Frequencia.find({ data });
+
+        if (registrosDia.length === 0) {
+            return res.json([]);
+        }
+
+        const promessasRanking = turmas.map(async (turma) => {
+            const totalAlunosTurma = await Aluno.countDocuments({ turma: turma.nome, ativo: true });
+            
+            if (totalAlunosTurma === 0) return null;
+
+            const chamadasDaTurma = registrosDia.filter(r => r.turma === turma.nome);
+
+            if (chamadasDaTurma.length === 0) return null;
+
+            const faltasPenalizadas = chamadasDaTurma.filter(r => {
+                if (r.houve_falta === true) {
+                    const motivo = r.motivo_falta ? r.motivo_falta.toString().toUpperCase() : 'DIRETA';
+                    return motivo === 'DIRETA'; 
+                }
+                return false;
+            }).length;
+
+            const alunosPresentesVirtuais = totalAlunosTurma - faltasPenalizadas;
+            const indicePresenca = Math.round((alunosPresentesVirtuais / totalAlunosTurma) * 100);
+
+            return {
+                turma: turma.nome,
+                totalAlunos: totalAlunosTurma,
+                faltasDiretas: faltasPenalizadas,
+                aproveitamento: Math.max(0, indicePresenca)
+            };
+        });
+
+        const resultadoBruto = await Promise.all(promessasRanking);
+        
+        const rankingOrdenado = resultadoBruto
+            .filter(item => item !== null)
+            .sort((a, b) => b.aproveitamento - a.aproveitamento);
+
+        res.json(rankingOrdenado);
+    } catch (error) {
+        res.status(500).json({ erro: 'Erro interno ao computar ranking diário.', detalhes: error.message });
     }
 });
 
