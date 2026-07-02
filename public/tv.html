@@ -2,74 +2,191 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Escolar - Escola Carminha</title>
     <style>
-        body { background: #0f172a; color: white; margin: 0; overflow: hidden; height: 100vh; display: flex; justify-content: center; align-items: center; }
+        :root {
+            --bg-principal: #0f172a;
+            --bg-card: #1e293b;
+            --bg-item: #111827;
+            --texto-claro: #f8fafc;
+            --cor-ouro: #eab308;
+            --cor-prata: #cbd5e1;
+            --cor-bronze: #b45309;
+            --cor-sucesso: #4ade80;
+            --cor-alerta: #f87171;
+            --cor-azul: #38bdf8;
+        }
+        body { background-color: var(--bg-principal); color: var(--texto-claro); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        .resumo-discreto-topo { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 15px 40px; background: var(--bg-card); box-sizing: border-box; border-bottom: 1px solid #334155; font-size: 1.4rem; color: #94a3b8; }
+        .tv-container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px 40px; text-align: center; box-sizing: border-box; }
+        .slide { display: none; width: 100%; height: 100%; animation: fadeIn 0.8s ease-in-out forwards; }
+        .slide.ativo { display: flex; flex-direction: column; justify-content: center; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: scale(1); } }
+        .podio-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .podio-titulo { font-size: 3.2rem; font-weight: 900; color: var(--cor-ouro); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px; }
+        .secao-campeao-master { background: linear-gradient(135deg, #242217 0%, #111827 100%); border: 4px solid var(--cor-ouro); border-radius: 24px; padding: 30px; display: flex; align-items: center; gap: 40px; max-width: 1200px; width: 95%; margin-bottom: 30px; box-sizing: border-box; animation: pulseGlow 2.5s infinite alternate; }
+        .foto-campeao-img { width: 440px; height: 280px; object-fit: cover; border-radius: 16px; border: 3px solid #fef08a; background-color: var(--bg-card); }
+        .nome-campeao-grande { font-size: 4rem; font-weight: 900; color: #ffffff; margin: 0; }
+        .porcentagem-campeao-grande { font-size: 5rem; font-weight: 900; color: var(--cor-sucesso); margin: 10px 0 0 0; }
+        .podio-estrutura-inferior { display: flex; justify-content: center; gap: 40px; width: 100%; max-width: 1200px; }
+        .card-sub-podio { background: var(--bg-card); border: 2px solid #334155; border-radius: 16px; padding: 15px 30px; display: flex; align-items: center; gap: 20px; flex: 1; box-sizing: border-box; }
+        .card-sub-podio.segundo { border-color: var(--cor-prata); }
+        .card-sub-podio.terceiro { border-color: var(--cor-bronze); }
+        .sub-turma { font-size: 1.8rem; font-weight: 800; color: white; }
+        .sub-porcentagem { font-size: 1.5rem; font-weight: bold; color: var(--cor-sucesso); }
+        .titulo-geral { font-size: 2.8rem; margin: 0 0 15px 0; font-weight: 800; }
+        .bloco-ranking-unico { background: var(--bg-card); padding: 20px 30px; border-radius: 20px; border-top: 6px solid var(--cor-azul); width: 100%; }
+        .ranking-completo-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 20px; width: 100%; max-height: 62vh; overflow: hidden; }
+        .lista-scroll-tv { display: flex; flex-direction: column; gap: 8px; }
+        .ranking-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: var(--bg-item); border-radius: 10px; font-size: 1.4rem; font-weight: 700; border-left: 5px solid #64748b; }
+        .ranking-item.ouro { border-left-color: var(--cor-ouro); background: #242217; }
+        .ranking-item.prata { border-left-color: var(--cor-prata); }
+        .ranking-item.bronze { border-left-color: var(--cor-bronze); }
+        .ranking-item .posicao { background: #334155; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-right: 12px; }
         
-        /* Container Base */
-        .instagram-tv-wrapper { width: 960px; height: 960px; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        
-        /* Clip-path ajustado: diminuí o valor inferior (20px) para exibir o rodapé */
-        .instagram-tv-wrapper iframe { 
-            width: 100%; 
-            height: 100%; 
-            border: none; 
-            border-radius: 12px; 
-            clip-path: inset(0px 0px 0px 0px); 
-            transform: scale(1.15); 
+        /* CONTAINER DE MÍDIAS COLETIVO */
+        .container-midia-dinamica { width: 100%; height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .midia-frame-renderizado { width: 100%; max-width: 1200px; height: 100%; border: none; border-radius: 16px; background: #000; }
+        .midia-imagem-renderizada { max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 16px; }
+        .titulo-midia-atual { font-size: 2rem; font-weight: bold; color: var(--cor-azul); margin-bottom: 15px; text-transform: uppercase; }
+
+        /* MÁSCARA COM CLIP-PATH CORRIGIDA */
+        .instagram-tv-wrapper {
+            width: 100%;
+            max-width: 720px;
+            height: 720px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
         }
         
-        /* Ajuste Horizontal (16:9) */
-        .instagram-tv-wrapper.horizontal { width: 1280px; height: 720px; }
-        .instagram-tv-wrapper.horizontal iframe { clip-path: none; transform: scale(1.0); }
+        .instagram-tv-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000;
+            border-radius: 12px;
+            /* AJUSTE FINO: Corta 60px do topo (cabeçalho insta) E APENAS 80px da base (interações). */
+            /* Antes era 180px, o que cortava a imagem toda. */
+            clip-path: inset(60px 0px 80px 0px);
+            /* Zoom mantido para centralizar */
+            transform: scale(1.3); 
+            transform-origin: top center;
+        }
     </style>
 </head>
 <body>
-    <div id="wrapperMidiaDinamica">Carregando...</div>
+
+    <div class="resumo-discreto-topo">
+        <span id="txtDataAtual">📅 --/--/----</span>
+        <span>Mural Digital Escolar 📋</span>
+        <span>Frequência Média Geral: <strong id="mediaGeralEscola" style="color: var(--cor-azul);">0%</strong></span>
+    </div>
+    
+    <div class="tv-container">
+        <div id="slideCampeao" class="slide ativo">
+            <div class="podio-container">
+                <div class="podio-titulo">🏆 LÍDER EM ASSIDUIDADE HOJE</div>
+                <div class="secao-campeao-master">
+                    <img id="podio1_foto" src="" class="foto-campeao-img" onerror="this.src='https://placehold.co/500x300/1e293b/f8fafc?text=Sem+Foto+📸'">
+                    <div class="info-campeao-textos">
+                        <span class="label-ouro-topo">1º Lugar Geral</span>
+                        <h1 id="podio1_nome" class="nome-campeao-grande">--</h1>
+                        <h2 id="podio1_porcentagem" class="porcentagem-campeao-grande">--%</h2>
+                    </div>
+                </div>
+                <div class="podio-estrutura-inferior">
+                    <div class="card-sub-podio segundo"><div class="sub-textos"><div id="podio2_nome" class="sub-turma">--</div><div id="podio2_porcentagem" class="sub-porcentagem">--%</div></div></div>
+                    <div class="card-sub-podio terceiro"><div class="sub-textos"><div id="podio3_nome" class="sub-turma">--</div><div id="podio3_porcentagem" class="sub-porcentagem">--%</div></div></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="slideTabela" class="slide">
+            <h1 class="titulo-geral">📊 Classificação Completa</h1>
+            <div class="bloco-ranking-unico">
+                <div class="ranking-completo-grid">
+                    <div id="listaFrequenciaMetade1" class="lista-scroll-tv"></div>
+                    <div id="listaFrequenciaMetade2" class="lista-scroll-tv"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="slideAviso" class="slide">
+            <div class="container-midia-dinamica">
+                <div id="tituloMidiaPainel" class="titulo-midia-atual">Mural de Avisos</div>
+                <div id="wrapperMidiaDinamica" style="width: 100%; display: flex; justify-content: center; height: 100%; align-items: center;"></div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        let playlist = [];
-        let indice = 0;
+        const hoje = new Date();
+        const dataFormatada = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+        document.getElementById('txtDataAtual').textContent = hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-        async function atualizarPlaylist() {
+        const sequenciaSlides = ['slideCampeao', 'slideTabela', 'slideAviso'];
+        let indiceSlideAtual = 0;
+        let timerRotacao; 
+        let playlistMídias = [];
+        let indiceMidiaAtual = 0;
+
+        async function inicializarPainel() {
+            await carregarDadosPainel();
+            await carregarPlaylistServidor();
+            // Pega o tempo configurado no localStorage ou 15s padrão
+            const tempoCampeao = parseInt(localStorage.getItem('tempoCampeao'), 10) || 15;
+            // Inicia o ciclo
+            agendarProximoSlide(tempoCampeao);
+        }
+
+        // Inicia o sistema
+        inicializarPainel();
+
+        // Atualiza dados a cada 3 minutos (sem parar a rotação)
+        setInterval(async () => {
+            await carregarDadosPainel();
+            await carregarPlaylistServidor();
+        }, 3 * 60 * 1000);
+
+        async function carregarPlaylistServidor() {
             try {
                 const res = await fetch('https://frequencia-carminha.up.railway.app/api/playlist');
-                playlist = await res.json();
-                if (playlist.length > 0 && indice >= playlist.length) indice = 0;
-            } catch (e) { console.error("Erro ao buscar playlist", e); }
+                if (res.ok) playlistMídias = await res.json();
+            } catch (err) { console.error(err); }
         }
 
-        function rodarSlides() {
-            if (playlist.length === 0) {
-                setTimeout(rodarSlides, 5000);
-                return;
-            }
+        async function carregarDadosPainel() {
+            try {
+                const res = await fetch(`https://frequencia-carminha.up.railway.app/api/frequencia/ranking-diario/${dataFormatada}`);
+                if (!res.ok) return;
+                const dados = await res.json();
+                if (!dados || dados.length === 0) return;
 
-            const midia = playlist[indice];
-            const wrapper = document.getElementById('wrapperMidiaDinamica');
-            const ehHorizontal = midia.orientacao === 'horizontal';
-            
-            // Renderiza o conteúdo
-            if (midia.tipo === 'instagram') {
-                wrapper.innerHTML = `
-                    <div class="instagram-tv-wrapper ${ehHorizontal ? 'horizontal' : ''}">
-                        <iframe src="${midia.url}" scrolling="no"></iframe>
-                    </div>
-                `;
-            } else {
-                wrapper.innerHTML = `<iframe src="${midia.url}" style="width: 1280px; height: 720px; border:none;"></iframe>`;
-            }
+                let somaAproveitamento = 0;
+                dados.forEach(t => somaAproveitamento += t.aproveitamento);
+                document.getElementById('mediaGeralEscola').textContent = `${Math.round(somaAproveitamento / dados.length)}%`;
 
-            // Define o tempo e passa para o próximo
-            const tempo = (midia.tempoExibicao || 15) * 1000;
-            indice = (indice + 1) % playlist.length;
-            
-            setTimeout(rodarSlides, tempo);
+                if (dados[0]) {
+                    document.getElementById('podio1_nome').textContent = dados[0].turma;
+                    document.getElementById('podio1_porcentagem').textContent = `${dados[0].aproveitamento}%`;
+                    document.getElementById('podio1_foto').src = dados[0].fotoUrl || 'https://placehold.co/500x300/1e293b/f8fafc?text=' + encodeURIComponent(dados[0].turma);
+                }
+                document.getElementById('podio2_nome').textContent = dados[1] ? dados[1].turma : '--';
+                document.getElementById('podio2_porcentagem').textContent = dados[1] ? `${dados[1].aproveitamento}%` : '--%';
+                document.getElementById('podio3_nome').textContent = dados[2] ? dados[2].turma : '--';
+                document.getElementById('podio3_porcentagem').textContent = dados[2] ? `${dados[2].aproveitamento}%` : '--%';
+                renderizarTodasAsTurmas(dados);
+            } catch (err) { console.error(err); }
         }
 
-        // Inicialização
-        setInterval(atualizarPlaylist, 60000); // Atualiza lista a cada minuto
-        atualizarPlaylist().then(rodarSlides);
-    </script>
-</body>
-</html>
+        function renderizarTodasAsTurmas(dados) {
+            const metade1 = document.getElementById('listaFrequenciaMetade1');
+            const metade2 = document.getElementById('listaFrequenciaMetade2');
+            metade1.innerHTML = ''; metade2.innerHTML = '';
+            const meio = Math.ceil(dados.length / 2);
+            dados.forEach((item, index) => {
+                let classeEstilo = index === 0 ? 'ouro' : index === 1 ? 'prata' : index === 2 ? 'bronze' : item.aproveitamento < 85 ? 'alerta' : '';
+                const htmlItem = `<div class="ranking-item ${classeEstilo}"><span class="posicao">${index+1}º</span>${item.turma} <span style="margin-left:auto;">${item.aproveitamento
