@@ -193,10 +193,8 @@
         document.getElementById('txtDataAtual').textContent = hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
         carregarDadosPainel();
-        setInterval(carregarDadosPainel, 5 * 60 * 1000); // 5 min
-        setInterval(alternarSlides, 15 * 1000);          // 15 segundos
-
-        async function carregarPainelDados() {} // Apenas prevenção
+        setInterval(carregarDadosPainel, 5 * 60 * 1000); // Recarrega os dados a cada 5 min
+        setInterval(alternarSlides, 15 * 1000);          // Alterna as telas a cada 15 segundos
 
         async function carregarDadosPainel() {
             try {
@@ -214,7 +212,7 @@
                 dados.forEach(t => somaAproveitamento += t.aproveitamento);
                 document.getElementById('mediaGeralEscola').textContent = `${Math.round(somaAproveitamento / dados.length)}%`;
 
-                // 2. Renderiza Tela do 1º Lugar (Campeão)
+                // 2. Renderiza Tela do 1º Lugar (Campeão) com a Foto Gigante
                 const campeao = dados[0];
                 document.getElementById('nomeCampeao').textContent = campeao.turma;
                 document.getElementById('txtAproveitamentoCampeao').textContent = `Assiduidade Premiada: ${campeao.aproveitamento}%`;
@@ -226,7 +224,7 @@
                     areaFoto.innerHTML = `<div class="foto-placeholder">📸 Sem foto cadastrada para o ${campeao.turma}</div>`;
                 }
 
-                // 3. Renderiza Listagem Geral
+                // 3. Renderiza Listagem Geral das Tabelas
                 renderizarTabelas(dados);
 
             } catch (err) {
@@ -288,6 +286,7 @@
         function mostrarPainelVazio() {
             document.getElementById('nomeCampeao').textContent = "AGUARDANDO CHAMADAS";
             document.getElementById('areaFotoCampeao').innerHTML = `<div class="foto-placeholder">Nenhuma chamada realizada hoje.</div>`;
+            document.getElementById('mediaGeralEscola').textContent = '0%';
         }
     </script>
 </body>
