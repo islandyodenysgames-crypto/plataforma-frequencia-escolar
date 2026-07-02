@@ -51,11 +51,10 @@
         .midia-imagem-renderizada { max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 16px; }
         .titulo-midia-atual { font-size: 2rem; font-weight: bold; color: var(--cor-azul); margin-bottom: 15px; text-transform: uppercase; }
 
-        /* MÁSCARA INSTAGRAM EQUILIBRADA */
+        /* MÁSCARA INSTAGRAM EXPANDIDA E EQUILIBRADA */
         .instagram-tv-wrapper {
-            width: 100%;
-            max-width: 900px;
-            height: 750px;
+            width: 960px; /* Largura expandida */
+            height: 960px; /* Altura expandida */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -68,9 +67,9 @@
             border: none;
             background: #000;
             border-radius: 12px;
-            /* Corte conservador: 45px no topo e 130px na base para não cortar a foto */
+            /* Mantendo a proporção de corte que você aprovou */
             clip-path: inset(45px 0px 130px 0px);
-            /* Zoom moderado para preencher a tela */
+            /* Zoom ajustado para o novo tamanho do contêiner */
             transform: scale(1.15); 
             transform-origin: top center;
         }
