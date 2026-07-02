@@ -81,7 +81,7 @@ router.put('/alunos/:id', auth, async (req, res) => {
         const dadosAtualizados = req.body;
         const aluno = await Aluno.findByIdAndUpdate(req.params.id, dadosAtualizados, { new: true });
         if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado.' });
-        res.json({ margin: 'Aluno updated com sucesso! 🔄', aluno });
+        res.json({ mensagem: 'Aluno atualizado com sucesso! 🔄', aluno });
     } catch (error) {
         res.status(500).json({ erro: 'Erro ao atualizar dados do aluno.', detalhes: error.message });
     }
@@ -128,16 +128,23 @@ router.get('/historico/:turma/:data', auth, async (req, res) => {
     }
 });
 
-// 📅 NOVO: Buscar apenas as datas únicas que já possuem chamada para uma turma específica
+// 📅 Buscar apenas as datas únicas que já possuem chamada para uma turma específica (Tratada contra ISO-Fuso-Horário)
 router.get('/datas-concluidas/:turma', auth, async (req, res) => {
     try {
         const { turma } = req.params;
 
-        // O método .distinct() filtra e traz apenas os valores únicos do campo 'data'
-        const datasUnicas = await Frequencia.distinct('data', { turma });
+        // Busca todas as frequências daquela turma trazendo exclusivamente o campo data
+        const registros = await Frequencia.find({ turma }, 'data');
         
-        // Ordena as datas para que as mais recentes apareçam primeiro na lista de botões
-        datasUnicas.sort((a, b) => new Date(b) - new Date(a));
+        // Limpa e formata as datas para o padrão estável AAAA-MM-DD
+        const datasTratadas = registros.map(reg => {
+            if (!reg.data) return null;
+            const dataString = reg.data instanceof Date ? reg.data.toISOString() : String(reg.data);
+            return dataString.split('T')[0]; // Isola apenas a parte da data
+        }).filter(Boolean);
+
+        // Remove duplicatas e organiza as datas de forma decrescente (mais recente primeiro)
+        const datasUnicas = [...new Set(datasTratadas)].sort((a, b) => new Date(b) - new Date(a));
 
         res.json(datasUnicas);
     } catch (error) {
