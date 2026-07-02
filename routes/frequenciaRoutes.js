@@ -15,7 +15,7 @@ router.get('/turmas', auth, async (req, res) => {
         const turmas = await Turma.find().sort({ nome: 1 });
         res.json(turmas);
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao buscar turmas.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -32,7 +32,7 @@ router.post('/turmas', auth, async (req, res) => {
         await novaTurma.save();
         res.status(201).json({ mensagem: 'Turma cadastrada com sucesso! 🏫', turma: novaTurma });
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao cadastrar turma.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -43,7 +43,7 @@ router.delete('/turmas/:id', auth, async (req, res) => {
         if (!turmaDeletada) return res.status(404).json({ erro: 'Turma não encontrada.' });
         res.json({ mensagem: 'Turma removida com sucesso! 🗑️' });
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao deletar turma.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -57,7 +57,7 @@ router.get('/alunos/:turma', auth, async (req, res) => {
         const alunos = await Aluno.find({ turma: req.params.turma, ativo: true }).sort({ nome: 1 });
         res.json(alunos);
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao buscar alunos.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -71,7 +71,7 @@ router.post('/alunos', auth, async (req, res) => {
         await novoAluno.save();
         res.status(201).json({ mensagem: 'Aluno cadastrado com sucesso! 🎒', aluno: novoAluno });
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao cadastrar aluno.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -81,9 +81,9 @@ router.put('/alunos/:id', auth, async (req, res) => {
         const dadosAtualizados = req.body;
         const aluno = await Aluno.findByIdAndUpdate(req.params.id, dadosAtualizados, { new: true });
         if (!aluno) return res.status(404).json({ erro: 'Aluno não encontrado.' });
-        res.json({ mensagem: 'Aluno updated com sucesso! 🔄', aluno });
+        res.json({ mensagem: 'Aluno atualizado com sucesso! 🔄', aluno });
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao atualizar dados do aluno.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -110,7 +110,7 @@ router.post('/lancar', auth, async (req, res) => {
         await Promise.all(promessas);
         res.json({ mensagem: '✅ Chamada salva e atualizada com sucesso no banco!' });
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao salvar chamada no banco.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -121,7 +121,7 @@ router.get('/historico/:turma/:data', auth, async (req, res) => {
         const registros = await Frequencia.find({ turma, data });
         res.json(registros);
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao buscar histórico de chamada.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -140,7 +140,7 @@ router.get('/datas-concluidas/:turma', auth, async (req, res) => {
         const datasUnicas = [...new Set(datasTratadas)].sort((a, b) => new Date(b) - new Date(a));
         res.json(datasUnicas);
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao buscar datas concluídas.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
@@ -157,38 +157,36 @@ router.delete('/deletar-chamada/:turma/:data', auth, async (req, res) => {
         
         res.json({ mensagem: `🗑️ Chamada do dia ${data.split('-').reverse().join('/')} excluída com sucesso!` });
     } catch (error) {
-        res.status(500).json({ erro: 'Erro ao deletar histórico de frequência.', detalhes: error.message });
+        res.status(500).json({ erro: error.message });
     }
 });
 
-// 📊 GERAR RELATÓRIO ESTATÍSTICO DA TURMA FILTRADO POR MÊS/ANO (BLINDADO)
+// 📊 GERAR RELATÓRIO ESTATÍSTICO DA TURMA FILTRADO POR MÊS/ANO
 router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
     try {
-        const { turma, anoMes } = req.params; // Ex: "2026-07"
+        const { turma, anoMes } = req.params;
         
         const [ano, mes] = anoMes.split('-').map(Number);
         
-        // Define o intervalo exato de segurança cobrindo o fuso horário UTC do MongoDB
         const dataInicio = new Date(Date.UTC(ano, mes - 1, 1, 0, 0, 0));
         const dataFim = new Date(Date.UTC(ano, mes, 0, 23, 59, 59, 999));
 
-        // 1. Busca alunos ativos na turma correspondente
+        // 1. Busca alunos ativos
         const alunos = await Aluno.find({ turma, ativo: true }).sort({ nome: 1 });
         
-        // 2. Busca abrangente para evitar incompatibilidades de tipo primitivo String vs Date Object
+        // 2. Busca registros do mês de forma simplificada
         const registros = await Frequencia.find({
             turma,
             $or: [
-                { data: { $regex: `^${anoMes}` } },
-                { data: { $gte: dataInicio, $lte: dataFim } }
+                { data: { $gte: dataInicio, $lte: dataFim } },
+                { data: { $gte: `${anoMes}-01`, $lte: `${anoMes}-31` } }
             ]
         });
 
-        // 3. Estruturação do mapeamento individual por aluno
+        // 3. Mapeia e calcula as estatísticas
         const relatorio = alunos.map(aluno => {
             const idString = aluno._id.toString();
             
-            // Filtra os registros prevenindo erros se aluno_id for um ObjectId bruto do Mongo
             const chamadasAluno = registros.filter(r => {
                 const rAlunoId = r.aluno_id ? r.aluno_id.toString() : '';
                 return rAlunoId === idString;
@@ -226,8 +224,8 @@ router.get('/relatorio/:turma/:anoMes', auth, async (req, res) => {
 
         res.json(relatorio);
     } catch (error) {
-        console.error("Erro interno no processamento do relatório:", error);
-        res.status(500).json({ erro: 'Erro ao gerar relatório estatístico.', detalhes: error.message });
+        // Retorna a mensagem de erro original do JavaScript/Mongoose para sabermos o ponto exato da quebra
+        res.status(500).json({ erro: error.message });
     }
 });
 
